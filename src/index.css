@@ -1,0 +1,16 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans:
+    "Pretendard", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji",
+    "Segoe UI Emoji";
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background-color: rgb(196 181 253 / 0.45);
+}
