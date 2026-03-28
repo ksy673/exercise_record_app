@@ -6,12 +6,14 @@ import {
   type WorkoutFields,
   type WorkoutItem,
 } from "../types";
+import { parsePastedWorkoutText } from "../utils/quickParse";
 import { formatShortDate } from "../utils/week";
 
 type Props = {
   date: Date;
   items: WorkoutItem[];
   onAdd: (item: WorkoutFields) => void;
+  onAddBatch: (items: WorkoutFields[]) => void;
   onUpdate: (id: string, item: WorkoutFields) => void;
   onDelete: (id: string) => void;
   onToggleComplete: (id: string, completed: boolean) => void;
@@ -20,17 +22,17 @@ type Props = {
 const labelCn =
   "block text-[11px] font-bold uppercase tracking-wider text-slate-500";
 const inputCn =
-  "mt-1.5 w-full rounded-xl border-0 bg-slate-50/90 px-3.5 py-2.5 text-sm text-slate-900 shadow-[inset_0_1px_2px_rgb(15_23_42/0.06)] ring-1 ring-slate-200/80 transition placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-violet-500/35";
+  "mt-1.5 w-full rounded-xl border-0 bg-slate-50/90 px-3.5 py-2.5 text-sm text-slate-900 shadow-[inset_0_1px_2px_rgb(15_23_42/0.06)] ring-1 ring-slate-200/80 transition placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/35";
 
 const btnPrimary =
-  "rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-violet-500/20 transition hover:brightness-105 active:scale-[0.99]";
+  "rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-600/20 transition hover:brightness-105 active:scale-[0.99]";
 const btnGhost =
-  "rounded-xl border border-slate-200/90 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:border-violet-200 hover:bg-violet-50/50";
+  "rounded-xl border border-slate-200/90 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:border-emerald-200 hover:bg-emerald-50/60";
 const btnDanger =
   "rounded-xl border border-rose-200/90 bg-rose-50/40 px-3 py-2 text-xs font-semibold text-rose-700 transition hover:border-rose-300 hover:bg-rose-100/60";
 
 const chipCn =
-  "rounded-full border border-violet-200/90 bg-white px-3 py-1.5 text-left text-xs font-semibold text-slate-800 shadow-sm transition hover:border-violet-400 hover:bg-violet-50 active:scale-[0.98]";
+  "rounded-full border border-emerald-200/90 bg-white px-3 py-1.5 text-left text-xs font-semibold text-slate-800 shadow-sm transition hover:border-emerald-400 hover:bg-emerald-50 active:scale-[0.98]";
 
 function parseWorkoutFieldsOrExplain(
   bodyPart: BodyPart,
@@ -67,14 +69,20 @@ function parseWorkoutFieldsOrExplain(
   return { ok: true, value: { bodyPart, name: trimmed, sets: setsNum, weightKg: weightNum } };
 }
 
+type AddMode = "detail" | "quick";
+
 export function RoutineList({
   date,
   items,
   onAdd,
+  onAddBatch,
   onUpdate,
   onDelete,
   onToggleComplete,
 }: Props) {
+  const [addMode, setAddMode] = useState<AddMode>("detail");
+  const [quickText, setQuickText] = useState("");
+
   const [bodyPart, setBodyPart] = useState<BodyPart>("가슴");
   const [name, setName] = useState("");
   const [sets, setSets] = useState("3");
@@ -116,6 +124,19 @@ export function RoutineList({
     setWeightKg(String(result.value.weightKg));
   }
 
+  function handleQuickAdd() {
+    const parsed = parsePastedWorkoutText(quickText);
+    if (parsed.length === 0) {
+      setAddError(
+        "읽을 수 있는 줄이 없어요. 형식: `운동이름 세트 무게` 또는 `가슴 벤치 3 60`",
+      );
+      return;
+    }
+    setAddError(null);
+    onAddBatch(parsed);
+    setQuickText("");
+  }
+
   function handleSaveEdit(e: FormEvent, id: string) {
     e.preventDefault();
     const result = parseWorkoutFieldsOrExplain(
@@ -140,159 +161,215 @@ export function RoutineList({
     }
   }
 
+  const modeBtn = (mode: AddMode, label: string) => (
+    <button
+      key={mode}
+      type="button"
+      onClick={() => {
+        setAddMode(mode);
+        setAddError(null);
+      }}
+      className={`flex-1 rounded-lg px-3 py-2 text-xs font-bold transition sm:text-sm ${
+        addMode === mode
+          ? "bg-white text-emerald-800 shadow-sm ring-1 ring-emerald-200/80"
+          : "text-slate-600 hover:text-slate-900"
+      }`}
+    >
+      {label}
+    </button>
+  );
+
   return (
     <section className="mt-7">
       <div className="flex items-center gap-3">
         <span
-          className="h-9 w-1 shrink-0 rounded-full bg-gradient-to-b from-violet-500 via-indigo-500 to-cyan-500 shadow-sm shadow-violet-400/40"
+          className="h-9 w-1 shrink-0 rounded-full bg-gradient-to-b from-emerald-500 via-teal-500 to-cyan-500 shadow-sm shadow-emerald-400/30"
           aria-hidden
         />
         <div className="min-w-0">
           <h2 className="text-lg font-bold tracking-tight text-slate-900 sm:text-xl">
             {formatShortDate(date)}
           </h2>
-          <p className="text-xs font-semibold text-slate-500">이 날의 루틴</p>
+          <p className="text-xs font-semibold text-slate-500">운동 일지</p>
         </div>
       </div>
 
-      <form
-        onSubmit={handleAdd}
-        className="mt-5 space-y-4 rounded-2xl border border-white/70 bg-white/75 p-5 shadow-[0_20px_50px_-24px_rgb(15_23_42/0.2)] backdrop-blur-md sm:p-6"
-      >
-        <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-3">
+      <div className="mt-5 rounded-2xl border border-emerald-100/90 bg-white p-5 shadow-[0_20px_50px_-24px_rgb(16_185_129/0.18)] sm:p-6">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
           <div>
-            <p className="text-xs font-bold uppercase tracking-wider text-violet-600/90">
-              새 운동
+            <p className="text-xs font-bold uppercase tracking-wider text-emerald-700/90">
+              새 기록
             </p>
-            <p className="text-sm font-semibold text-slate-800">항목 추가</p>
+            <p className="text-sm font-semibold text-slate-800">루틴 추가</p>
           </div>
-          <span
-            className="rounded-lg bg-violet-100 px-2 py-1 text-[10px] font-bold text-violet-700"
-            aria-hidden
-          >
-            +
-          </span>
+          <div className="flex w-full max-w-xs rounded-xl bg-slate-100/90 p-1 sm:w-auto">
+            {modeBtn("detail", "상세 입력")}
+            {modeBtn("quick", "빠른 붙여넣기")}
+          </div>
         </div>
 
         {addError ? (
           <p
-            className="rounded-xl border border-amber-200/80 bg-amber-50/90 px-3 py-2.5 text-sm font-medium text-amber-900"
+            className="mt-3 rounded-xl border border-amber-200/80 bg-amber-50/90 px-3 py-2.5 text-sm font-medium text-amber-900"
             role="alert"
           >
             {addError}
           </p>
         ) : null}
 
-        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(240px,300px)] lg:items-start lg:gap-6">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <label className={labelCn}>
-              부위
-              <select
-                value={bodyPart}
-                onChange={(e) => {
-                  setBodyPart(e.target.value as BodyPart);
-                  setAddError(null);
-                }}
-                className={inputCn}
-              >
-                {BODY_PART_OPTIONS.map((p) => (
-                  <option key={p} value={p}>
-                    {p}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className={`${labelCn} sm:col-span-2`}>
-              운동 이름
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => {
-                  setName(e.target.value);
-                  setAddError(null);
-                }}
-                placeholder="아래 추천을 누르거나 직접 입력"
-                className={inputCn}
-              />
-            </label>
-            <label className={labelCn}>
-              세트 수
-              <input
-                type="number"
-                min={1}
-                step={1}
-                value={sets}
-                onChange={(e) => {
-                  setSets(e.target.value);
-                  setAddError(null);
-                }}
-                className={inputCn}
-              />
-            </label>
-            <label className={labelCn}>
-              무게 (kg)
-              <input
-                type="number"
-                min={0}
-                step={0.5}
-                value={weightKg}
-                onChange={(e) => {
-                  setWeightKg(e.target.value);
-                  setAddError(null);
-                }}
-                className={inputCn}
-              />
-            </label>
+        {addMode === "quick" ? (
+          <div className="mt-4 space-y-3">
+            <p className="text-[13px] leading-relaxed text-slate-600">
+              인터넷에서 복사한 루틴을 그대로 붙여 넣을 수 있어요.{" "}
+              <span className="font-semibold text-slate-800">
+                한 줄에 하나씩 · 맨 끝에 세트 수와 무게(kg)
+              </span>
+              순서로 적어 주세요.
+            </p>
+            <textarea
+              value={quickText}
+              onChange={(e) => {
+                setQuickText(e.target.value);
+                setAddError(null);
+              }}
+              rows={8}
+              className="w-full resize-y rounded-xl border border-slate-200 bg-slate-50/80 px-3 py-3 font-mono text-[13px] leading-relaxed text-slate-900 shadow-inner placeholder:text-slate-400 focus:border-emerald-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/25"
+              placeholder={
+                "벤치프레스 3 60\n랫풀다운 3 40\n가슴 인클라인 덤벨 4 22\n하체 스쿼트 5 100"
+              }
+              spellCheck={false}
+            />
+            <button type="button" onClick={handleQuickAdd} className={`${btnPrimary} w-full`}>
+              파싱해서 한 번에 추가
+            </button>
+            <p className="text-center text-[11px] leading-relaxed text-slate-500">
+              부위를 쓰려면 맨 앞에{" "}
+              <span className="font-medium text-slate-700">
+                가슴 / 등 / 어깨 / 팔 / 하체 / 코어 / 전신 / 기타
+              </span>{" "}
+              중 하나를 넣을 수 있어요.
+            </p>
           </div>
+        ) : (
+          <form onSubmit={handleAdd} className="mt-4 space-y-4">
+            <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(240px,300px)] lg:items-start lg:gap-6">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className={labelCn}>
+                  부위
+                  <select
+                    value={bodyPart}
+                    onChange={(e) => {
+                      setBodyPart(e.target.value as BodyPart);
+                      setAddError(null);
+                    }}
+                    className={inputCn}
+                  >
+                    {BODY_PART_OPTIONS.map((p) => (
+                      <option key={p} value={p}>
+                        {p}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className={`${labelCn} sm:col-span-2`}>
+                  운동 이름
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => {
+                      setName(e.target.value);
+                      setAddError(null);
+                    }}
+                    placeholder="아래 추천을 누르거나 직접 입력"
+                    className={inputCn}
+                  />
+                </label>
+                <label className={labelCn}>
+                  세트 수
+                  <input
+                    type="number"
+                    min={1}
+                    step={1}
+                    value={sets}
+                    onChange={(e) => {
+                      setSets(e.target.value);
+                      setAddError(null);
+                    }}
+                    className={inputCn}
+                  />
+                </label>
+                <label className={labelCn}>
+                  무게 (kg)
+                  <input
+                    type="number"
+                    min={0}
+                    step={0.5}
+                    value={weightKg}
+                    onChange={(e) => {
+                      setWeightKg(e.target.value);
+                      setAddError(null);
+                    }}
+                    className={inputCn}
+                  />
+                </label>
+              </div>
 
-          <aside className="rounded-2xl border border-violet-200/70 bg-gradient-to-b from-violet-50/60 to-white/50 p-4 shadow-inner lg:sticky lg:top-4">
-            <p className="text-xs font-extrabold uppercase tracking-wider text-violet-700">
-              추천 운동
-            </p>
-            <p className="mt-1 text-[12px] leading-snug text-slate-600">
-              초보자도 부위별로 뭐 할지 고르기 쉽게 모아 두었어요. 버튼을 누르면{" "}
-              <span className="font-semibold text-slate-800">이름 칸</span>에 들어갑니다.
-            </p>
-            <div className="mt-3 flex max-h-[220px] flex-wrap gap-2 overflow-y-auto pr-0.5 lg:max-h-[320px]">
-              {EXERCISES_BY_PART[bodyPart].map((ex) => (
-                <button
-                  key={ex}
-                  type="button"
-                  className={chipCn}
-                  onClick={() => {
-                    setName(ex);
-                    setAddError(null);
-                  }}
-                >
-                  {ex}
-                </button>
-              ))}
+              <aside className="rounded-2xl border border-emerald-100 bg-gradient-to-b from-emerald-50/70 to-white/60 p-4 shadow-inner lg:sticky lg:top-4">
+                <p className="text-xs font-extrabold uppercase tracking-wider text-emerald-800">
+                  추천 운동
+                </p>
+                <p className="mt-1 text-[12px] leading-snug text-slate-600">
+                  초보자도 부위별로 고르기 쉽게 모아 두었어요. 버튼을 누르면 이름 칸에
+                  들어갑니다.
+                </p>
+                <div className="mt-3 flex max-h-[220px] flex-wrap gap-2 overflow-y-auto pr-0.5 lg:max-h-[320px]">
+                  {EXERCISES_BY_PART[bodyPart].map((ex) => (
+                    <button
+                      key={ex}
+                      type="button"
+                      className={chipCn}
+                      onClick={() => {
+                        setName(ex);
+                        setAddError(null);
+                      }}
+                    >
+                      {ex}
+                    </button>
+                  ))}
+                </div>
+              </aside>
             </div>
-          </aside>
-        </div>
 
-        <button type="submit" className={`${btnPrimary} w-full`}>
-          이 날 루틴에 추가
-        </button>
-        <p className="text-center text-xs leading-relaxed text-slate-500">
-          운동을 여러 개 넣을 때는 추가할 때마다{" "}
-          <span className="font-semibold text-slate-600">이름을 다시 입력</span>한 뒤 버튼을
-          눌러 주세요.
-        </p>
-      </form>
+            <button type="submit" className={`${btnPrimary} w-full`}>
+              이 날 일지에 추가
+            </button>
+            <p className="text-center text-xs leading-relaxed text-slate-500">
+              여러 개는 추가할 때마다 이름을 입력하거나,{" "}
+              <button
+                type="button"
+                className="font-semibold text-emerald-700 underline decoration-emerald-300 underline-offset-2 hover:text-emerald-800"
+                onClick={() => setAddMode("quick")}
+              >
+                빠른 붙여넣기
+              </button>
+              로 한 번에 넣을 수 있어요.
+            </p>
+          </form>
+        )}
+      </div>
 
       {items.length === 0 ? (
-        <div className="mt-5 rounded-2xl border border-dashed border-violet-200/70 bg-gradient-to-br from-violet-50/50 via-white/40 to-cyan-50/40 px-6 py-14 text-center shadow-inner">
+        <div className="mt-5 rounded-2xl border border-dashed border-emerald-200/80 bg-gradient-to-br from-emerald-50/60 via-white/50 to-teal-50/40 px-6 py-14 text-center shadow-inner">
           <div
-            className="mx-auto mb-4 flex size-16 items-center justify-center rounded-2xl bg-white/90 text-3xl shadow-[0_8px_24px_-8px_rgb(91_33_182/0.2)] ring-1 ring-violet-100"
+            className="mx-auto mb-4 flex size-16 items-center justify-center rounded-2xl bg-white text-3xl shadow-[0_8px_24px_-8px_rgb(16_185_129/0.25)] ring-1 ring-emerald-100"
             aria-hidden
           >
-            📋
+            🏋️
           </div>
-          <p className="text-base font-bold text-slate-800">아직 운동이 없어요</p>
+          <p className="text-base font-bold text-slate-800">아직 기록이 없어요</p>
           <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-slate-600">
-            위에서 이름·세트·무게를 입력하고{" "}
-            <span className="font-semibold text-violet-700">이 날 루틴에 추가</span>를 눌러
+            상세 입력으로 하나씩 넣거나, 웹에서 복사한 루틴을{" "}
+            <span className="font-semibold text-emerald-800">빠른 붙여넣기</span>에 붙여
             보세요.
           </p>
         </div>
@@ -301,15 +378,15 @@ export function RoutineList({
           {items.map((item) => (
             <li
               key={item.id}
-              className={`rounded-2xl border bg-white/80 p-4 shadow-sm backdrop-blur-sm transition duration-200 sm:p-5 ${
+              className={`rounded-2xl border bg-white p-4 shadow-[0_8px_30px_-20px_rgb(15_23_42/0.12)] transition duration-200 sm:p-5 ${
                 item.completed
-                  ? "border-emerald-200/50 ring-1 ring-emerald-100/60"
-                  : "border-slate-200/70 hover:border-violet-200/60 hover:shadow-md"
+                  ? "border-emerald-200/80 ring-1 ring-emerald-100/80"
+                  : "border-slate-200/80 hover:border-emerald-200/70 hover:shadow-md"
               }`}
             >
               {editingId === item.id ? (
                 <form onSubmit={(e) => handleSaveEdit(e, item.id)} className="space-y-4">
-                  <p className="text-xs font-bold uppercase tracking-wider text-violet-600">
+                  <p className="text-xs font-bold uppercase tracking-wider text-emerald-700">
                     수정 중
                   </p>
                   {editError ? (
@@ -380,8 +457,8 @@ export function RoutineList({
                         />
                       </label>
                     </div>
-                    <aside className="rounded-2xl border border-violet-200/70 bg-violet-50/50 p-4">
-                      <p className="text-xs font-extrabold text-violet-700">추천 운동</p>
+                    <aside className="rounded-2xl border border-emerald-100 bg-emerald-50/40 p-4">
+                      <p className="text-xs font-extrabold text-emerald-800">추천 운동</p>
                       <div className="mt-2 flex max-h-[160px] flex-wrap gap-2 overflow-y-auto">
                         {EXERCISES_BY_PART[editBodyPart].map((ex) => (
                           <button
@@ -421,7 +498,7 @@ export function RoutineList({
                       onChange={(e) =>
                         onToggleComplete(item.id, e.target.checked)
                       }
-                      className="mt-1 size-[1.15rem] shrink-0 cursor-pointer rounded-md border-slate-300 text-violet-600 accent-violet-600 focus:ring-2 focus:ring-violet-500/40"
+                      className="mt-1 size-[1.15rem] shrink-0 cursor-pointer rounded-md border-slate-300 text-emerald-600 accent-emerald-600 focus:ring-2 focus:ring-emerald-500/40"
                       aria-label={`${item.name} 완료`}
                     />
                   </label>
@@ -435,7 +512,7 @@ export function RoutineList({
                         className={`shrink-0 rounded-lg px-2.5 py-0.5 text-[11px] font-bold ${
                           item.completed
                             ? "bg-emerald-100 text-emerald-800 line-through decoration-2 decoration-emerald-700"
-                            : "bg-violet-100 text-violet-800"
+                            : "bg-emerald-100/90 text-emerald-900"
                         }`}
                       >
                         {item.bodyPart}

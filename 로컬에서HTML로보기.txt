@@ -1,0 +1,32 @@
+■ HTML(정적 파일)로 보는 방법
+
+1) Node.js가 설치된 PC에서, 이 폴더(workout-app)를 연 뒤 터미널에 입력:
+
+   npm install
+   npm run build
+
+2) 빌드가 끝나면 `dist` 폴더가 생깁니다.
+
+   dist/index.html  ← 이 파일이 브라우저용 진입점입니다.
+   dist/assets/     ← JS·CSS 번들
+
+3) 가장 확실한 보기 (권장)
+
+   npm run preview
+
+   → 브라우저가 자동으로 열리고, 로컬 주소(예: http://127.0.0.1:4173)에서 앱이 실행됩니다.
+
+4) dist/index.html만 더블클릭해서 열기
+
+   일부 브라우저는 보안 때문에 file:// 로 열린 ES 모듈을 막을 수 있습니다.
+   그럴 때는 3번처럼 `npm run preview`를 쓰거나,
+   dist 폴더에서 다음처럼 간단 서버를 띄우세요:
+
+   python -m http.server 8080
+
+   그 다음 브라우저에서 http://localhost:8080 접속
+
+■ 참고
+
+- `vite.config.ts`에 base: "./" 가 설정되어 있어, dist 폴더째를 USB로 옮겨도 상대 경로가 유지됩니다.
+- 개발 중에는 `npm run dev` 로 핫리로드 서버를 쓰는 것이 편합니다.
