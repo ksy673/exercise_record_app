@@ -3,11 +3,14 @@ import { EXERCISES_BY_PART } from "../data/exerciseSuggestions";
 import {
   BODY_PART_OPTIONS,
   type BodyPart,
+  type SetEntry,
   type WorkoutFields,
   type WorkoutItem,
 } from "../types";
 import { parsePastedWorkoutText } from "../utils/quickParse";
 import { formatShortDate } from "../utils/week";
+import { ExerciseVideoThumb } from "./ExerciseVideoThumb";
+import { SetRowsWithCheckboxes } from "./SetRowsWithCheckboxes";
 
 type Props = {
   date: Date;
@@ -17,56 +20,65 @@ type Props = {
   onUpdate: (id: string, item: WorkoutFields) => void;
   onDelete: (id: string) => void;
   onToggleComplete: (id: string, completed: boolean) => void;
+  onToggleSet: (id: string, setIndex: number) => void;
 };
 
 const labelCn =
   "block text-[11px] font-bold uppercase tracking-wider text-slate-500";
 const inputCn =
-  "mt-1.5 w-full rounded-xl border-0 bg-slate-50/90 px-3.5 py-2.5 text-sm text-slate-900 shadow-[inset_0_1px_2px_rgb(15_23_42/0.06)] ring-1 ring-slate-200/80 transition placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/35";
+  "mt-1.5 w-full rounded-xl border-0 bg-slate-900 px-3.5 py-2.5 text-sm text-slate-100 shadow-inner ring-1 ring-slate-700 transition placeholder:text-slate-500 focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/40";
 
 const btnPrimary =
-  "rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-600/20 transition hover:brightness-105 active:scale-[0.99]";
+  "rounded-xl bg-gradient-to-r from-amber-700 to-amber-500 px-4 py-3 text-sm font-bold text-slate-950 shadow-lg shadow-amber-900/25 transition hover:brightness-110 active:scale-[0.99]";
 const btnGhost =
-  "rounded-xl border border-slate-200/90 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:border-emerald-200 hover:bg-emerald-50/60";
+  "rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-xs font-semibold text-slate-200 transition hover:border-slate-500 hover:bg-slate-800";
 const btnDanger =
-  "rounded-xl border border-rose-200/90 bg-rose-50/40 px-3 py-2 text-xs font-semibold text-rose-700 transition hover:border-rose-300 hover:bg-rose-100/60";
+  "rounded-xl border border-rose-900/50 bg-rose-950/30 px-3 py-2 text-xs font-semibold text-rose-300 transition hover:border-rose-700 hover:bg-rose-950/60";
 
 const chipCn =
-  "rounded-full border border-emerald-200/90 bg-white px-3 py-1.5 text-left text-xs font-semibold text-slate-800 shadow-sm transition hover:border-emerald-400 hover:bg-emerald-50 active:scale-[0.98]";
+  "rounded-full border border-slate-600 bg-slate-900 px-3 py-1.5 text-left text-xs font-semibold text-slate-100 transition hover:border-amber-500/40 hover:bg-slate-800 active:scale-[0.98]";
+
+function defaultSetRows(): { weightKg: string; reps: string }[] {
+  return [
+    { weightKg: "60", reps: "10" },
+    { weightKg: "60", reps: "10" },
+    { weightKg: "60", reps: "10" },
+  ];
+}
+
+function parseSetRows(
+  rows: { weightKg: string; reps: string }[],
+): { ok: true; value: SetEntry[] } | { ok: false; message: string } {
+  if (rows.length < 1) {
+    return { ok: false, message: "세트를 1개 이상 추가해 주세요." };
+  }
+  const out: SetEntry[] = [];
+  for (let i = 0; i < rows.length; i++) {
+    const w = Number(String(rows[i].weightKg).trim());
+    const r = Number(String(rows[i].reps).trim());
+    if (!Number.isFinite(w) || w < 0) {
+      return { ok: false, message: `${i + 1}세트 무게(kg)가 올바르지 않아요.` };
+    }
+    if (!Number.isFinite(r) || !Number.isInteger(r) || r < 1) {
+      return { ok: false, message: `${i + 1}세트 횟수는 1 이상 정수여야 해요.` };
+    }
+    out.push({ weightKg: w, reps: r });
+  }
+  return { ok: true, value: out };
+}
 
 function parseWorkoutFieldsOrExplain(
   bodyPart: BodyPart,
   name: string,
-  sets: string,
-  weightKg: string,
+  rows: { weightKg: string; reps: string }[],
 ): { ok: true; value: WorkoutFields } | { ok: false; message: string } {
   const trimmed = name.trim();
   if (!trimmed) {
-    return { ok: false, message: "운동 이름을 입력해 주세요. (비어 있으면 추가되지 않아요)" };
+    return { ok: false, message: "운동 이름을 입력해 주세요." };
   }
-
-  const setsStr = String(sets).trim();
-  if (setsStr === "") {
-    return { ok: false, message: "세트 수를 입력해 주세요. (1 이상 정수)" };
-  }
-  const setsNum = Number(setsStr);
-  if (!Number.isFinite(setsNum)) {
-    return { ok: false, message: "세트 수는 숫자로 입력해 주세요." };
-  }
-  if (setsNum < 1 || !Number.isInteger(setsNum)) {
-    return { ok: false, message: "세트 수는 1 이상의 정수여야 해요." };
-  }
-
-  const wStr = String(weightKg).trim();
-  const weightNum = wStr === "" ? 0 : Number(wStr);
-  if (!Number.isFinite(weightNum)) {
-    return { ok: false, message: "무게(kg)는 숫자로 입력해 주세요." };
-  }
-  if (weightNum < 0) {
-    return { ok: false, message: "무게는 0 이상이어야 해요." };
-  }
-
-  return { ok: true, value: { bodyPart, name: trimmed, sets: setsNum, weightKg: weightNum } };
+  const sets = parseSetRows(rows);
+  if (!sets.ok) return sets;
+  return { ok: true, value: { bodyPart, name: trimmed, setEntries: sets.value } };
 }
 
 type AddMode = "detail" | "quick";
@@ -79,29 +91,32 @@ export function RoutineList({
   onUpdate,
   onDelete,
   onToggleComplete,
+  onToggleSet,
 }: Props) {
   const [addMode, setAddMode] = useState<AddMode>("detail");
   const [quickText, setQuickText] = useState("");
 
   const [bodyPart, setBodyPart] = useState<BodyPart>("가슴");
   const [name, setName] = useState("");
-  const [sets, setSets] = useState("3");
-  const [weightKg, setWeightKg] = useState("0");
+  const [setRows, setSetRows] = useState(defaultSetRows);
   const [addError, setAddError] = useState<string | null>(null);
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editBodyPart, setEditBodyPart] = useState<BodyPart>("가슴");
   const [editName, setEditName] = useState("");
-  const [editSets, setEditSets] = useState("3");
-  const [editWeightKg, setEditWeightKg] = useState("0");
+  const [editRows, setEditRows] = useState(defaultSetRows());
   const [editError, setEditError] = useState<string | null>(null);
 
   function beginEdit(item: WorkoutItem) {
     setEditingId(item.id);
     setEditBodyPart(item.bodyPart);
     setEditName(item.name);
-    setEditSets(String(item.sets));
-    setEditWeightKg(String(item.weightKg));
+    setEditRows(
+      item.setEntries.map((s) => ({
+        weightKg: String(s.weightKg),
+        reps: String(s.reps),
+      })),
+    );
     setEditError(null);
   }
 
@@ -112,7 +127,7 @@ export function RoutineList({
 
   function handleAdd(e: FormEvent) {
     e.preventDefault();
-    const result = parseWorkoutFieldsOrExplain(bodyPart, name, sets, weightKg);
+    const result = parseWorkoutFieldsOrExplain(bodyPart, name, setRows);
     if (!result.ok) {
       setAddError(result.message);
       return;
@@ -120,15 +135,14 @@ export function RoutineList({
     setAddError(null);
     onAdd(result.value);
     setName("");
-    setSets(String(result.value.sets));
-    setWeightKg(String(result.value.weightKg));
+    setSetRows(defaultSetRows());
   }
 
   function handleQuickAdd() {
     const parsed = parsePastedWorkoutText(quickText);
     if (parsed.length === 0) {
       setAddError(
-        "읽을 수 있는 줄이 없어요. 형식: `운동이름 세트 무게` 또는 `가슴 벤치 3 60`",
+        "읽을 수 있는 줄이 없어요. 형식: `운동이름 세트 무게` 또는 `벤치 3 60 12` (마지막 숫자는 횟수)",
       );
       return;
     }
@@ -139,12 +153,7 @@ export function RoutineList({
 
   function handleSaveEdit(e: FormEvent, id: string) {
     e.preventDefault();
-    const result = parseWorkoutFieldsOrExplain(
-      editBodyPart,
-      editName,
-      editSets,
-      editWeightKg,
-    );
+    const result = parseWorkoutFieldsOrExplain(editBodyPart, editName, editRows);
     if (!result.ok) {
       setEditError(result.message);
       return;
@@ -171,8 +180,8 @@ export function RoutineList({
       }}
       className={`flex-1 rounded-lg px-3 py-2 text-xs font-bold transition sm:text-sm ${
         addMode === mode
-          ? "bg-white text-emerald-800 shadow-sm ring-1 ring-emerald-200/80"
-          : "text-slate-600 hover:text-slate-900"
+          ? "bg-slate-800 text-white shadow-sm ring-1 ring-amber-500/40"
+          : "text-slate-500 hover:text-slate-200"
       }`}
     >
       {label}
@@ -183,26 +192,26 @@ export function RoutineList({
     <section className="mt-7">
       <div className="flex items-center gap-3">
         <span
-          className="h-9 w-1 shrink-0 rounded-full bg-gradient-to-b from-emerald-500 via-teal-500 to-cyan-500 shadow-sm shadow-emerald-400/30"
+          className="h-9 w-1 shrink-0 rounded-full bg-gradient-to-b from-amber-500 to-cyan-600 shadow-sm shadow-amber-900/30"
           aria-hidden
         />
         <div className="min-w-0">
-          <h2 className="text-lg font-bold tracking-tight text-slate-900 sm:text-xl">
+          <h2 className="text-lg font-bold tracking-tight text-white sm:text-xl">
             {formatShortDate(date)}
           </h2>
           <p className="text-xs font-semibold text-slate-500">운동 일지</p>
         </div>
       </div>
 
-      <div className="mt-5 rounded-2xl border border-emerald-100/90 bg-white p-5 shadow-[0_20px_50px_-24px_rgb(16_185_129/0.18)] sm:p-6">
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
+      <div className="mt-5 rounded-2xl border border-slate-800 bg-slate-900/50 p-5 sm:p-6">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3">
           <div>
-            <p className="text-xs font-bold uppercase tracking-wider text-emerald-700/90">
+            <p className="text-xs font-bold uppercase tracking-wider text-amber-400/90">
               새 기록
             </p>
-            <p className="text-sm font-semibold text-slate-800">루틴 추가</p>
+            <p className="text-sm font-semibold text-slate-200">루틴 추가</p>
           </div>
-          <div className="flex w-full max-w-xs rounded-xl bg-slate-100/90 p-1 sm:w-auto">
+          <div className="flex w-full max-w-xs rounded-xl bg-slate-950/80 p-1 sm:w-auto">
             {modeBtn("detail", "상세 입력")}
             {modeBtn("quick", "빠른 붙여넣기")}
           </div>
@@ -210,7 +219,7 @@ export function RoutineList({
 
         {addError ? (
           <p
-            className="mt-3 rounded-xl border border-amber-200/80 bg-amber-50/90 px-3 py-2.5 text-sm font-medium text-amber-900"
+            className="mt-3 rounded-xl border border-amber-900/60 bg-amber-950/40 px-3 py-2.5 text-sm font-medium text-amber-200"
             role="alert"
           >
             {addError}
@@ -219,12 +228,12 @@ export function RoutineList({
 
         {addMode === "quick" ? (
           <div className="mt-4 space-y-3">
-            <p className="text-[13px] leading-relaxed text-slate-600">
-              인터넷에서 복사한 루틴을 그대로 붙여 넣을 수 있어요.{" "}
-              <span className="font-semibold text-slate-800">
-                한 줄에 하나씩 · 맨 끝에 세트 수와 무게(kg)
+            <p className="text-[13px] leading-relaxed text-slate-400">
+              한 줄에{" "}
+              <span className="font-semibold text-slate-200">
+                운동이름 세트 무게(kg) [횟수]
               </span>
-              순서로 적어 주세요.
+              순서로 적을 수 있어요. 횟수를 생략하면 10회로 넣습니다.
             </p>
             <textarea
               value={quickText}
@@ -233,22 +242,13 @@ export function RoutineList({
                 setAddError(null);
               }}
               rows={8}
-              className="w-full resize-y rounded-xl border border-slate-200 bg-slate-50/80 px-3 py-3 font-mono text-[13px] leading-relaxed text-slate-900 shadow-inner placeholder:text-slate-400 focus:border-emerald-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/25"
-              placeholder={
-                "벤치프레스 3 60\n랫풀다운 3 40\n가슴 인클라인 덤벨 4 22\n하체 스쿼트 5 100"
-              }
+              className="w-full resize-y rounded-xl border border-slate-700 bg-slate-950 px-3 py-3 font-mono text-[13px] leading-relaxed text-slate-100 shadow-inner placeholder:text-slate-600 focus:border-amber-500/50 focus:outline-none focus:ring-2 focus:ring-amber-500/25"
+              placeholder={"벤치프레스 3 60\n랫풀다운 3 40\n스쿼트 5 100 8"}
               spellCheck={false}
             />
             <button type="button" onClick={handleQuickAdd} className={`${btnPrimary} w-full`}>
               파싱해서 한 번에 추가
             </button>
-            <p className="text-center text-[11px] leading-relaxed text-slate-500">
-              부위를 쓰려면 맨 앞에{" "}
-              <span className="font-medium text-slate-700">
-                가슴 / 등 / 어깨 / 팔 / 하체 / 코어 / 전신 / 기타
-              </span>{" "}
-              중 하나를 넣을 수 있어요.
-            </p>
           </div>
         ) : (
           <form onSubmit={handleAdd} className="mt-4 space-y-4">
@@ -284,43 +284,14 @@ export function RoutineList({
                     className={inputCn}
                   />
                 </label>
-                <label className={labelCn}>
-                  세트 수
-                  <input
-                    type="number"
-                    min={1}
-                    step={1}
-                    value={sets}
-                    onChange={(e) => {
-                      setSets(e.target.value);
-                      setAddError(null);
-                    }}
-                    className={inputCn}
-                  />
-                </label>
-                <label className={labelCn}>
-                  무게 (kg)
-                  <input
-                    type="number"
-                    min={0}
-                    step={0.5}
-                    value={weightKg}
-                    onChange={(e) => {
-                      setWeightKg(e.target.value);
-                      setAddError(null);
-                    }}
-                    className={inputCn}
-                  />
-                </label>
               </div>
 
-              <aside className="rounded-2xl border border-emerald-100 bg-gradient-to-b from-emerald-50/70 to-white/60 p-4 shadow-inner lg:sticky lg:top-4">
-                <p className="text-xs font-extrabold uppercase tracking-wider text-emerald-800">
+              <aside className="rounded-2xl border border-slate-800 bg-slate-950/60 p-4 shadow-inner lg:sticky lg:top-4">
+                <p className="text-xs font-extrabold uppercase tracking-wider text-slate-400">
                   추천 운동
                 </p>
-                <p className="mt-1 text-[12px] leading-snug text-slate-600">
-                  초보자도 부위별로 고르기 쉽게 모아 두었어요. 버튼을 누르면 이름 칸에
-                  들어갑니다.
+                <p className="mt-1 text-[12px] leading-snug text-slate-500">
+                  버튼을 누르면 이름 칸에 들어갑니다.
                 </p>
                 <div className="mt-3 flex max-h-[220px] flex-wrap gap-2 overflow-y-auto pr-0.5 lg:max-h-[320px]">
                   {EXERCISES_BY_PART[bodyPart].map((ex) => (
@@ -340,58 +311,115 @@ export function RoutineList({
               </aside>
             </div>
 
+            <div className="rounded-2xl border border-slate-800 bg-slate-950/40 p-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                  세트별 무게 · 횟수
+                </p>
+                <button
+                  type="button"
+                  className={btnGhost}
+                  onClick={() =>
+                    setSetRows((r) => [...r, { weightKg: "60", reps: "10" }])
+                  }
+                >
+                  + 세트 추가
+                </button>
+              </div>
+              <ul className="mt-3 space-y-2">
+                {setRows.map((row, i) => (
+                  <li
+                    key={i}
+                    className="grid grid-cols-[1fr_1fr_auto] items-end gap-2 sm:max-w-md"
+                  >
+                    <label className={labelCn}>
+                      {i + 1}세트 kg
+                      <input
+                        type="number"
+                        min={0}
+                        step={0.5}
+                        value={row.weightKg}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          setSetRows((rows) =>
+                            rows.map((x, j) => (j === i ? { ...x, weightKg: v } : x)),
+                          );
+                          setAddError(null);
+                        }}
+                        className={inputCn}
+                      />
+                    </label>
+                    <label className={labelCn}>
+                      횟수
+                      <input
+                        type="number"
+                        min={1}
+                        step={1}
+                        value={row.reps}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          setSetRows((rows) =>
+                            rows.map((x, j) => (j === i ? { ...x, reps: v } : x)),
+                          );
+                          setAddError(null);
+                        }}
+                        className={inputCn}
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      disabled={setRows.length <= 1}
+                      onClick={() =>
+                        setSetRows((rows) => rows.filter((_, j) => j !== i))
+                      }
+                      className="mb-0.5 rounded-lg border border-slate-700 px-2 py-2 text-xs font-bold text-slate-400 disabled:opacity-30"
+                    >
+                      삭제
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
             <button type="submit" className={`${btnPrimary} w-full`}>
               이 날 일지에 추가
             </button>
-            <p className="text-center text-xs leading-relaxed text-slate-500">
-              여러 개는 추가할 때마다 이름을 입력하거나,{" "}
-              <button
-                type="button"
-                className="font-semibold text-emerald-700 underline decoration-emerald-300 underline-offset-2 hover:text-emerald-800"
-                onClick={() => setAddMode("quick")}
-              >
-                빠른 붙여넣기
-              </button>
-              로 한 번에 넣을 수 있어요.
-            </p>
           </form>
         )}
       </div>
 
       {items.length === 0 ? (
-        <div className="mt-5 rounded-2xl border border-dashed border-emerald-200/80 bg-gradient-to-br from-emerald-50/60 via-white/50 to-teal-50/40 px-6 py-14 text-center shadow-inner">
+        <div className="mt-5 rounded-2xl border border-dashed border-slate-700 bg-slate-900/40 px-6 py-14 text-center shadow-inner">
           <div
-            className="mx-auto mb-4 flex size-16 items-center justify-center rounded-2xl bg-white text-3xl shadow-[0_8px_24px_-8px_rgb(16_185_129/0.25)] ring-1 ring-emerald-100"
+            className="mx-auto mb-4 flex size-16 items-center justify-center rounded-2xl bg-slate-950 text-3xl ring-1 ring-slate-800"
             aria-hidden
           >
             🏋️
           </div>
-          <p className="text-base font-bold text-slate-800">아직 기록이 없어요</p>
-          <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-slate-600">
-            상세 입력으로 하나씩 넣거나, 웹에서 복사한 루틴을{" "}
-            <span className="font-semibold text-emerald-800">빠른 붙여넣기</span>에 붙여
-            보세요.
+          <p className="text-base font-bold text-slate-200">아직 기록이 없어요</p>
+          <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-slate-500">
+            세트별 무게·횟수를 넣고 추가하거나, 빠른 붙여넣기를 사용해 보세요.
           </p>
         </div>
       ) : (
-        <ul className="mt-5 space-y-3">
+        <ul className="mt-5 space-y-4">
           {items.map((item) => (
             <li
               key={item.id}
-              className={`rounded-2xl border bg-white p-4 shadow-[0_8px_30px_-20px_rgb(15_23_42/0.12)] transition duration-200 sm:p-5 ${
+              className={`rounded-2xl border bg-slate-900/40 p-4 shadow-lg transition duration-200 sm:p-5 ${
                 item.completed
-                  ? "border-emerald-200/80 ring-1 ring-emerald-100/80"
-                  : "border-slate-200/80 hover:border-emerald-200/70 hover:shadow-md"
+                  ? "border-amber-500/35 ring-1 ring-amber-500/15"
+                  : "border-slate-800 hover:border-slate-600"
               }`}
             >
               {editingId === item.id ? (
                 <form onSubmit={(e) => handleSaveEdit(e, item.id)} className="space-y-4">
-                  <p className="text-xs font-bold uppercase tracking-wider text-emerald-700">
+                  <p className="text-xs font-bold uppercase tracking-wider text-amber-400/90">
                     수정 중
                   </p>
                   {editError ? (
                     <p
-                      className="rounded-xl border border-amber-200/80 bg-amber-50/90 px-3 py-2.5 text-sm font-medium text-amber-900"
+                      className="rounded-xl border border-amber-900/60 bg-amber-950/40 px-3 py-2.5 text-sm font-medium text-amber-200"
                       role="alert"
                     >
                       {editError}
@@ -428,37 +456,9 @@ export function RoutineList({
                           className={inputCn}
                         />
                       </label>
-                      <label className={labelCn}>
-                        세트 수
-                        <input
-                          type="number"
-                          min={1}
-                          step={1}
-                          value={editSets}
-                          onChange={(e) => {
-                            setEditSets(e.target.value);
-                            setEditError(null);
-                          }}
-                          className={inputCn}
-                        />
-                      </label>
-                      <label className={labelCn}>
-                        무게 (kg)
-                        <input
-                          type="number"
-                          min={0}
-                          step={0.5}
-                          value={editWeightKg}
-                          onChange={(e) => {
-                            setEditWeightKg(e.target.value);
-                            setEditError(null);
-                          }}
-                          className={inputCn}
-                        />
-                      </label>
                     </div>
-                    <aside className="rounded-2xl border border-emerald-100 bg-emerald-50/40 p-4">
-                      <p className="text-xs font-extrabold text-emerald-800">추천 운동</p>
+                    <aside className="rounded-2xl border border-slate-800 bg-slate-950/50 p-4">
+                      <p className="text-xs font-extrabold text-slate-400">추천 운동</p>
                       <div className="mt-2 flex max-h-[160px] flex-wrap gap-2 overflow-y-auto">
                         {EXERCISES_BY_PART[editBodyPart].map((ex) => (
                           <button
@@ -476,6 +476,75 @@ export function RoutineList({
                       </div>
                     </aside>
                   </div>
+                  <div className="rounded-2xl border border-slate-800 bg-slate-950/40 p-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <p className="text-xs font-bold text-slate-500">세트별 무게 · 횟수</p>
+                      <button
+                        type="button"
+                        className={btnGhost}
+                        onClick={() =>
+                          setEditRows((r) => [...r, { weightKg: "60", reps: "10" }])
+                        }
+                      >
+                        + 세트
+                      </button>
+                    </div>
+                    <ul className="mt-3 space-y-2">
+                      {editRows.map((row, i) => (
+                        <li
+                          key={i}
+                          className="grid grid-cols-[1fr_1fr_auto] items-end gap-2 sm:max-w-md"
+                        >
+                          <label className={labelCn}>
+                            {i + 1}세트 kg
+                            <input
+                              type="number"
+                              min={0}
+                              step={0.5}
+                              value={row.weightKg}
+                              onChange={(e) => {
+                                const v = e.target.value;
+                                setEditRows((rows) =>
+                                  rows.map((x, j) =>
+                                    j === i ? { ...x, weightKg: v } : x,
+                                  ),
+                                );
+                              }}
+                              className={inputCn}
+                            />
+                          </label>
+                          <label className={labelCn}>
+                            횟수
+                            <input
+                              type="number"
+                              min={1}
+                              step={1}
+                              value={row.reps}
+                              onChange={(e) => {
+                                const v = e.target.value;
+                                setEditRows((rows) =>
+                                  rows.map((x, j) =>
+                                    j === i ? { ...x, reps: v } : x,
+                                  ),
+                                );
+                              }}
+                              className={inputCn}
+                            />
+                          </label>
+                          <button
+                            type="button"
+                            disabled={editRows.length <= 1}
+                            onClick={() =>
+                              setEditRows((rows) => rows.filter((_, j) => j !== i))
+                            }
+                            className="mb-0.5 rounded-lg border border-slate-700 px-2 py-2 text-xs font-bold text-slate-400 disabled:opacity-30"
+                          >
+                            삭제
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                   <div className="flex gap-2">
                     <button type="submit" className={`${btnPrimary} flex-1 py-2.5`}>
                       저장
@@ -490,82 +559,76 @@ export function RoutineList({
                   </div>
                 </form>
               ) : (
-                <div className="flex flex-wrap items-start gap-3 sm:gap-4">
-                  <label className="mt-0.5 flex cursor-pointer items-start">
-                    <input
-                      type="checkbox"
-                      checked={item.completed}
-                      onChange={(e) =>
-                        onToggleComplete(item.id, e.target.checked)
-                      }
-                      className="mt-1 size-[1.15rem] shrink-0 cursor-pointer rounded-md border-slate-300 text-emerald-600 accent-emerald-600 focus:ring-2 focus:ring-emerald-500/40"
-                      aria-label={`${item.name} 완료`}
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+                  <div className="shrink-0 sm:w-[120px]">
+                    <ExerciseVideoThumb
+                      exerciseName={item.name}
+                      className="aspect-[4/3] w-full max-w-[140px] sm:max-w-none"
                     />
-                  </label>
-                  <div className="min-w-0 flex-1 space-y-2">
-                    <div
-                      className={`flex flex-wrap items-center gap-2 ${
-                        item.completed ? "opacity-70" : ""
-                      }`}
-                    >
-                      <span
-                        className={`shrink-0 rounded-lg px-2.5 py-0.5 text-[11px] font-bold ${
-                          item.completed
-                            ? "bg-emerald-100 text-emerald-800 line-through decoration-2 decoration-emerald-700"
-                            : "bg-emerald-100/90 text-emerald-900"
-                        }`}
-                      >
-                        {item.bodyPart}
-                      </span>
-                      <span
-                        className={`min-w-0 break-words text-base font-bold leading-snug ${
-                          item.completed
-                            ? "text-slate-400 line-through decoration-2 decoration-slate-400"
-                            : "text-slate-900"
-                        }`}
-                      >
-                        {item.name}
-                      </span>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2 text-sm">
-                      <span
-                        className={`inline-flex items-center rounded-lg bg-slate-100 px-2.5 py-1 font-semibold tabular-nums ${
-                          item.completed
-                            ? "text-slate-400 line-through decoration-2 decoration-slate-400"
-                            : "text-slate-800"
-                        }`}
-                      >
-                        {item.sets}세트
-                      </span>
-                      <span className="text-slate-300" aria-hidden>
-                        ·
-                      </span>
-                      <span
-                        className={`inline-flex items-center rounded-lg bg-slate-100 px-2.5 py-1 font-semibold tabular-nums ${
-                          item.completed
-                            ? "text-slate-400 line-through decoration-2 decoration-slate-400"
-                            : "text-slate-800"
-                        }`}
-                      >
-                        {item.weightKg}kg
-                      </span>
-                    </div>
                   </div>
-                  <div className="flex shrink-0 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => beginEdit(item)}
-                      className={`${btnGhost} min-w-[4.25rem]`}
-                    >
-                      수정
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteClick(item.id)}
-                      className={`${btnDanger} min-w-[4.25rem]`}
-                    >
-                      삭제
-                    </button>
+                  <div className="min-w-0 flex-1 space-y-3">
+                    <div className="flex flex-wrap items-start gap-3">
+                      <label className="mt-0.5 flex cursor-pointer items-start">
+                        <input
+                          type="checkbox"
+                          checked={item.completed}
+                          onChange={(e) =>
+                            onToggleComplete(item.id, e.target.checked)
+                          }
+                          className="mt-1 size-[1.15rem] shrink-0 cursor-pointer rounded-md border-slate-600 bg-slate-900 text-amber-500 accent-amber-500 focus:ring-2 focus:ring-amber-500/40"
+                          aria-label={`${item.name} 전체 완료`}
+                        />
+                      </label>
+                      <div className="min-w-0 flex-1 space-y-1">
+                        <div
+                          className={`flex flex-wrap items-center gap-2 ${
+                            item.completed ? "opacity-70" : ""
+                          }`}
+                        >
+                          <span
+                            className={`shrink-0 rounded-lg px-2.5 py-0.5 text-[11px] font-bold ${
+                              item.completed
+                                ? "bg-slate-800 text-slate-500 line-through"
+                                : "bg-slate-800 text-slate-300"
+                            }`}
+                          >
+                            {item.bodyPart}
+                          </span>
+                          <span
+                            className={`min-w-0 break-words text-base font-bold leading-snug ${
+                              item.completed
+                                ? "text-slate-500 line-through"
+                                : "text-white"
+                            }`}
+                          >
+                            {item.name}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-500">
+                          각 세트 옆 체크박스로 완료 · 세트 끝나면 휴식 타이머
+                        </p>
+                        <SetRowsWithCheckboxes
+                          sets={item.setEntries}
+                          onToggleSet={(i) => onToggleSet(item.id, i)}
+                        />
+                      </div>
+                      <div className="flex shrink-0 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => beginEdit(item)}
+                          className={`${btnGhost} min-w-[4.25rem]`}
+                        >
+                          수정
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteClick(item.id)}
+                          className={`${btnDanger} min-w-[4.25rem]`}
+                        >
+                          삭제
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}

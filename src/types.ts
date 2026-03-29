@@ -14,16 +14,28 @@ export const BODY_PART_OPTIONS = [
 
 export type BodyPart = (typeof BODY_PART_OPTIONS)[number];
 
+/** 세트 한 줄: 무게(kg) × 횟수, 완료 여부 */
+export type SetEntry = {
+  weightKg: number;
+  reps: number;
+  done?: boolean;
+};
+
 export type WorkoutItem = {
   id: string;
   bodyPart: BodyPart;
   name: string;
-  sets: number;
-  weightKg: number;
+  setEntries: SetEntry[];
+  /** 운동 전체 완료(체크) — 세트를 모두 찍었을 때도 true */
   completed: boolean;
 };
 
-/** 추가·수정 폼에서 다루는 필드 (완료 여부 제외) */
+/** 추가·수정 폼에서 다루는 필드 */
 export type WorkoutFields = Omit<WorkoutItem, "id" | "completed">;
 
 export type WorkoutsByDate = Record<string, WorkoutItem[]>;
+
+export type AppTab = "today" | "summary" | "history";
+
+/** 휴식 종료 알림음 프리셋 */
+export type RestSoundId = "beep" | "chime" | "bell" | "digital";

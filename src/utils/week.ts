@@ -1,3 +1,5 @@
+import type { WeekdayIndex } from "../types";
+
 /** 기준일이 속한 주의 월요일 00:00:00 (로컬 타임) */
 export function startOfIsoWeek(date: Date): Date {
   const d = new Date(date);
@@ -32,4 +34,17 @@ export function formatLocalDateKey(d: Date): string {
   const m = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
+}
+
+export function weekdayIndexFromDate(d: Date): WeekdayIndex {
+  const day = d.getDay();
+  if (day === 0) return 6;
+  return (day - 1) as WeekdayIndex;
+}
+
+/** reference 주 대비 target이 몇 주 앞/뒤인지 */
+export function weekOffsetBetween(target: Date, reference: Date): number {
+  const tMon = startOfIsoWeek(target).getTime();
+  const rMon = startOfIsoWeek(reference).getTime();
+  return Math.round((tMon - rMon) / (7 * 24 * 60 * 60 * 1000));
 }
