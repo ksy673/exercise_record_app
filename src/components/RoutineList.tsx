@@ -9,12 +9,19 @@ import {
 } from "../types";
 import { parsePastedWorkoutText } from "../utils/quickParse";
 import { formatShortDate } from "../utils/week";
+import type { SavedRoutine } from "../utils/savedRoutinesStorage";
 import { ExerciseVideoThumb } from "./ExerciseVideoThumb";
+import { RoutineLibrary } from "./RoutineLibrary";
 import { SetRowsWithCheckboxes } from "./SetRowsWithCheckboxes";
 
 type Props = {
   date: Date;
   items: WorkoutItem[];
+  sessionStartLabel: string | null;
+  savedRoutines: SavedRoutine[];
+  onSaveRoutine: (name: string) => void;
+  onLoadRoutine: (routine: SavedRoutine, mode: "append" | "replace") => void;
+  onDeleteRoutine: (id: string) => void;
   onAdd: (item: WorkoutFields) => void;
   onAddBatch: (items: WorkoutFields[]) => void;
   onUpdate: (id: string, item: WorkoutFields) => void;
@@ -86,6 +93,11 @@ type AddMode = "detail" | "quick";
 export function RoutineList({
   date,
   items,
+  sessionStartLabel,
+  savedRoutines,
+  onSaveRoutine,
+  onLoadRoutine,
+  onDeleteRoutine,
   onAdd,
   onAddBatch,
   onUpdate,
@@ -200,7 +212,26 @@ export function RoutineList({
             {formatShortDate(date)}
           </h2>
           <p className="text-xs font-semibold text-slate-500">운동 일지</p>
+          {sessionStartLabel ? (
+            <p className="mt-1 text-[11px] font-medium text-amber-200/90">
+              이 날 운동 시작: {sessionStartLabel}
+            </p>
+          ) : (
+            <p className="mt-1 text-[11px] text-slate-600">
+              운동을 추가하거나 세트를 완료하면 시작 시각이 기록됩니다.
+            </p>
+          )}
         </div>
+      </div>
+
+      <div className="mt-5">
+        <RoutineLibrary
+          routines={savedRoutines}
+          currentCount={items.length}
+          onSave={onSaveRoutine}
+          onLoad={onLoadRoutine}
+          onDelete={onDeleteRoutine}
+        />
       </div>
 
       <div className="mt-5 rounded-2xl border border-slate-800 bg-slate-900/50 p-5 sm:p-6">

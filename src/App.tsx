@@ -9,8 +9,21 @@ import { RoutineList } from "./components/RoutineList";
 import { WorkoutSummaryPanel } from "./components/WorkoutSummaryPanel";
 import type { AppSettings } from "./utils/appSettings";
 import { loadAppSettings, saveAppSettings } from "./utils/appSettings";
-import type { AppTab, WeekdayIndex, WorkoutItem, WorkoutsByDate } from "./types";
+import type { AppTab, WeekdayIndex, WorkoutFields, WorkoutItem, WorkoutsByDate } from "./types";
 import { playRestCompleteSound, playRestCountdownTick } from "./utils/restSound";
+import {
+  createRoutine,
+  loadSavedRoutines,
+  type SavedRoutine,
+  saveSavedRoutines,
+} from "./utils/savedRoutinesStorage";
+import {
+  ensureSessionStart,
+  formatSessionStartLabel,
+  loadSessionStarts,
+  saveSessionStarts,
+  type SessionStartByDate,
+} from "./utils/sessionStartStorage";
 import { loadWorkouts, saveWorkouts } from "./utils/workoutStorage";
 import {
   formatLocalDateKey,
@@ -51,6 +64,13 @@ export default function App() {
     year: new Date().getFullYear(),
     monthIndex: new Date().getMonth(),
   }));
+
+  const [sessionStarts, setSessionStarts] = useState<SessionStartByDate>(() =>
+    loadSessionStarts(),
+  );
+  const [savedRoutines, setSavedRoutines] = useState<SavedRoutine[]>(() =>
+    loadSavedRoutines(),
+  );
 
   const settingsRef = useRef(settings);
   settingsRef.current = settings;
@@ -98,6 +118,14 @@ export default function App() {
   }, [workoutsByDate]);
 
   useEffect(() => {
+    saveSessionStarts(sessionStarts);
+  }, [sessionStarts]);
+
+  useEffect(() => {
+    saveSavedRoutines(savedRoutines);
+  }, [savedRoutines]);
+
+  useEffect(() => {
     if (restSecondsLeft === null || restSecondsLeft <= 0) return;
     if (restSecondsLeft <= 3) {
       playRestCountdownTick(restSecondsLeft, settingsRef.current.restSoundId);
@@ -131,6 +159,19 @@ export default function App() {
     return n;
   }, [weekDates, workoutsByDate]);
 
+  const sessionStartLabel = useMemo(() => {
+    const iso = sessionStarts[dateKey];
+    return iso ? formatSessionStartLabel(iso) : null;
+  }, [sessionStarts, dateKey]);
+
+  function workoutToFields(w: WorkoutItem): WorkoutFields {
+    return {
+      bodyPart: w.bodyPart,
+      name: w.name,
+      setEntries: w.setEntries.map((s) => ({ weightKg: s.weightKg, reps: s.reps })),
+    };
+  }
+
   function startRestTimer() {
     const sec = settings.restDurationSec;
     setRestTimerTotal(sec);
@@ -140,6 +181,7 @@ export default function App() {
   function handleAdd(payload: Omit<WorkoutItem, "id" | "completed">) {
     const key = dateKeyRef.current;
     const item: WorkoutItem = { ...payload, id: newWorkoutId(), completed: false };
+    setSessionStarts((s) => ensureSessionStart(s, key));
     setWorkoutsByDate((prev) => ({
       ...prev,
       [key]: [...(prev[key] ?? []), item],
@@ -149,6 +191,7 @@ export default function App() {
   function handleAddBatch(payloads: Omit<WorkoutItem, "id" | "completed">[]) {
     if (payloads.length === 0) return;
     const key = dateKeyRef.current;
+    setSessionStarts((s) => ensureSessionStart(s, key));
     setWorkoutsByDate((prev) => ({
       ...prev,
       [key]: [
@@ -203,6 +246,7 @@ export default function App() {
       return { ...prev, [key]: next };
     });
     if (shouldRest) {
+      setSessionStarts((s) => ensureSessionStart(s, key));
       startRestTimer();
     } else {
       setRestSecondsLeft(null);
@@ -219,11 +263,45 @@ export default function App() {
         return { ...x, setEntries, completed };
       }),
     }));
-    if (completed) {
-      startRestTimer();
-    } else {
+    if (!completed) {
       setRestSecondsLeft(null);
     }
+  }
+
+  function handleSaveRoutine(name: string) {
+    const key = dateKeyRef.current;
+    const list = workoutsByDate[key] ?? [];
+    if (list.length === 0) return;
+    const items = list.map(workoutToFields);
+    const r = createRoutine(name, items);
+    setSavedRoutines((prev) => [...prev, r]);
+  }
+
+  function handleLoadRoutine(r: SavedRoutine, mode: "append" | "replace") {
+    const key = dateKeyRef.current;
+    setSessionStarts((s) => ensureSessionStart(s, key));
+    setWorkoutsByDate((prev) => {
+      const newItems: WorkoutItem[] = r.items.map((f) => ({
+        ...f,
+        id: newWorkoutId(),
+        completed: false,
+        setEntries: f.setEntries.map((s) => ({
+          weightKg: s.weightKg,
+          reps: s.reps,
+          done: false,
+        })),
+      }));
+      const prevList = prev[key] ?? [];
+      const merged = mode === "replace" ? newItems : [...prevList, ...newItems];
+      const next: WorkoutsByDate = { ...prev };
+      if (merged.length === 0) delete next[key];
+      else next[key] = merged;
+      return next;
+    });
+  }
+
+  function handleDeleteRoutine(id: string) {
+    setSavedRoutines((prev) => prev.filter((x) => x.id !== id));
   }
 
   function goToDate(d: Date) {
@@ -326,6 +404,11 @@ export default function App() {
                   key={dateKey}
                   date={selectedDate}
                   items={items}
+                  sessionStartLabel={sessionStartLabel}
+                  savedRoutines={savedRoutines}
+                  onSaveRoutine={handleSaveRoutine}
+                  onLoadRoutine={handleLoadRoutine}
+                  onDeleteRoutine={handleDeleteRoutine}
                   onAdd={handleAdd}
                   onAddBatch={handleAddBatch}
                   onUpdate={handleUpdate}

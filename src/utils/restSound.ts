@@ -19,7 +19,8 @@ function scheduleClose(ctx: AudioContext, ms: number): void {
   }, ms);
 }
 
-function sineBeep(
+/** 밝고 짧은 톤 (경쾌한 느낌) */
+function brightBeep(
   ctx: AudioContext,
   frequency: number,
   start: number,
@@ -33,13 +34,13 @@ function sineBeep(
   osc.type = "sine";
   osc.frequency.value = frequency;
   gain.gain.setValueAtTime(0.0001, start);
-  gain.gain.exponentialRampToValueAtTime(volume, start + 0.015);
+  gain.gain.exponentialRampToValueAtTime(volume, start + 0.012);
   gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
   osc.start(start);
   osc.stop(start + duration + 0.02);
 }
 
-function triangleBeep(
+function triangleBright(
   ctx: AudioContext,
   frequency: number,
   start: number,
@@ -53,13 +54,13 @@ function triangleBeep(
   osc.type = "triangle";
   osc.frequency.value = frequency;
   gain.gain.setValueAtTime(0.0001, start);
-  gain.gain.exponentialRampToValueAtTime(volume, start + 0.02);
+  gain.gain.exponentialRampToValueAtTime(volume, start + 0.015);
   gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
   osc.start(start);
   osc.stop(start + duration + 0.03);
 }
 
-function squareBeep(
+function squareBright(
   ctx: AudioContext,
   frequency: number,
   start: number,
@@ -73,16 +74,17 @@ function squareBeep(
   osc.type = "square";
   osc.frequency.value = frequency;
   gain.gain.setValueAtTime(0.0001, start);
-  gain.gain.exponentialRampToValueAtTime(volume * 0.45, start + 0.008);
+  gain.gain.exponentialRampToValueAtTime(volume * 0.35, start + 0.006);
   gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
   osc.start(start);
   osc.stop(start + duration + 0.02);
 }
 
+/** 3·2·1 — 높은 쪽으로 갈수록 더 밝게 */
 function countdownHz(remainingSeconds: number): number {
-  if (remainingSeconds === 3) return 520;
-  if (remainingSeconds === 2) return 660;
-  return 880;
+  if (remainingSeconds === 3) return 740;
+  if (remainingSeconds === 2) return 990;
+  return 1318;
 }
 
 /** 남은 초가 3·2·1일 때 카운트다운 틱 */
@@ -95,33 +97,33 @@ export function playRestCountdownTick(
   if (!ctx) return;
   const t0 = ctx.currentTime;
   const hz = countdownHz(remainingSeconds);
-  const vol = 0.1;
+  const vol = 0.11;
 
   try {
     switch (soundId) {
       case "beep":
-        sineBeep(ctx, hz, t0, 0.12, vol);
+        brightBeep(ctx, hz, t0, 0.1, vol);
         break;
       case "chime":
-        triangleBeep(ctx, hz, t0, 0.18, vol * 1.1);
+        triangleBright(ctx, hz, t0, 0.14, vol * 1.15);
         break;
       case "bell":
-        sineBeep(ctx, hz * 1.2, t0, 0.25, vol * 0.9);
-        sineBeep(ctx, hz * 0.5, t0 + 0.05, 0.2, vol * 0.5);
+        brightBeep(ctx, hz * 1.05, t0, 0.16, vol);
+        brightBeep(ctx, hz * 0.62, t0 + 0.04, 0.12, vol * 0.55);
         break;
       case "digital":
-        squareBeep(ctx, hz, t0, 0.08, vol * 0.8);
+        squareBright(ctx, hz, t0, 0.06, vol * 0.85);
         break;
       default:
-        sineBeep(ctx, hz, t0, 0.12, vol);
+        brightBeep(ctx, hz, t0, 0.1, vol);
     }
-    scheduleClose(ctx, 500);
+    scheduleClose(ctx, 450);
   } catch {
     void ctx.close();
   }
 }
 
-/** 휴식 종료 알림 */
+/** 휴식 종료 — 메이저 느낌의 짧은 상승 알림 */
 export function playRestCompleteSound(soundId: RestSoundId): void {
   const ctx = getAudioContext();
   if (!ctx) return;
@@ -130,32 +132,32 @@ export function playRestCompleteSound(soundId: RestSoundId): void {
   try {
     switch (soundId) {
       case "beep":
-        sineBeep(ctx, 880, t0, 0.18, 0.12);
-        sineBeep(ctx, 880, t0 + 0.22, 0.18, 0.12);
-        sineBeep(ctx, 990, t0 + 0.44, 0.22, 0.13);
-        scheduleClose(ctx, 1100);
+        brightBeep(ctx, 1046, t0, 0.12, 0.13);
+        brightBeep(ctx, 1318, t0 + 0.14, 0.12, 0.13);
+        brightBeep(ctx, 1568, t0 + 0.28, 0.16, 0.14);
+        scheduleClose(ctx, 700);
         break;
       case "chime":
-        triangleBeep(ctx, 523, t0, 0.35, 0.14);
-        triangleBeep(ctx, 659, t0 + 0.28, 0.35, 0.14);
-        triangleBeep(ctx, 784, t0 + 0.56, 0.45, 0.15);
-        scheduleClose(ctx, 1300);
+        triangleBright(ctx, 784, t0, 0.2, 0.14);
+        triangleBright(ctx, 988, t0 + 0.18, 0.2, 0.14);
+        triangleBright(ctx, 1175, t0 + 0.38, 0.28, 0.15);
+        scheduleClose(ctx, 900);
         break;
       case "bell":
-        sineBeep(ctx, 1046, t0, 0.4, 0.11);
-        sineBeep(ctx, 784, t0 + 0.15, 0.35, 0.08);
-        sineBeep(ctx, 523, t0 + 0.35, 0.5, 0.06);
-        scheduleClose(ctx, 1200);
+        brightBeep(ctx, 1175, t0, 0.22, 0.12);
+        brightBeep(ctx, 880, t0 + 0.12, 0.18, 0.1);
+        brightBeep(ctx, 1318, t0 + 0.28, 0.24, 0.11);
+        scheduleClose(ctx, 800);
         break;
       case "digital":
-        squareBeep(ctx, 1200, t0, 0.06, 0.1);
-        squareBeep(ctx, 1200, t0 + 0.1, 0.06, 0.1);
-        squareBeep(ctx, 1600, t0 + 0.2, 0.08, 0.12);
-        squareBeep(ctx, 2000, t0 + 0.32, 0.1, 0.12);
-        scheduleClose(ctx, 600);
+        squareBright(ctx, 1400, t0, 0.05, 0.1);
+        squareBright(ctx, 1760, t0 + 0.08, 0.05, 0.1);
+        squareBright(ctx, 2093, t0 + 0.16, 0.06, 0.11);
+        squareBright(ctx, 2637, t0 + 0.26, 0.07, 0.12);
+        scheduleClose(ctx, 500);
         break;
       default:
-        sineBeep(ctx, 880, t0, 0.18, 0.12);
+        brightBeep(ctx, 1046, t0, 0.12, 0.13);
         scheduleClose(ctx, 400);
     }
   } catch {
