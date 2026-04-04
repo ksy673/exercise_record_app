@@ -225,31 +225,49 @@ export default function App() {
       else next[key] = filtered;
       return next;
     });
+    setRestSecondsLeft(null);
   }
 
   function handleToggleSet(itemId: string, setIndex: number) {
     const key = dateKeyRef.current;
+    
+    // Check the current state to determine if we should start the timer
+    const list = workoutsByDate[key] ?? [];
+    const itemToToggle = list.find((x) => x.id === itemId);
     let shouldRest = false;
+
+    if (itemToToggle) {
+      const wasDone = itemToToggle.setEntries[setIndex]?.done === true;
+      if (!wasDone) {
+        shouldRest = true;
+      }
+    }
+
     setWorkoutsByDate((prev) => {
-      const list = prev[key] ?? [];
-      const next = list.map((item) => {
+      const prevList = prev[key] ?? [];
+      const next = prevList.map((item) => {
         if (item.id !== itemId) return item;
-        const wasDone = item.setEntries[setIndex]?.done === true;
         const setEntries = item.setEntries.map((s, i) =>
-          i === setIndex ? { ...s, done: !wasDone } : s,
+          i === setIndex ? { ...s, done: !s.done } : s,
         );
-        const toggledNow = setEntries[setIndex].done === true;
-        if (toggledNow && !wasDone) shouldRest = true;
         const completed = setEntries.every((s) => s.done);
         return { ...item, setEntries, completed };
       });
       return { ...prev, [key]: next };
     });
+
     if (shouldRest) {
+      // Force clear the timer if it's already running so that the timer completely restarts.
+      // We can use setTimeout to ensure it restarts in the next tick if needed,
+      // but usually just doing setRestSecondsLeft(null) and then setting it works well 
+      // if React handles it, but since React batches them we might need to do it after a tick.
       setSessionStarts((s) => ensureSessionStart(s, key));
-      startRestTimer();
-    } else {
+      
+      // Clear the timer first and restart it
       setRestSecondsLeft(null);
+      setTimeout(() => {
+        startRestTimer();
+      }, 0);
     }
   }
 
@@ -263,9 +281,6 @@ export default function App() {
         return { ...x, setEntries, completed };
       }),
     }));
-    if (!completed) {
-      setRestSecondsLeft(null);
-    }
   }
 
   function handleSaveRoutine(name: string) {

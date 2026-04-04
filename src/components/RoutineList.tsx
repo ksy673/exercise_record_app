@@ -39,8 +39,6 @@ const btnPrimary =
   "rounded-xl bg-gradient-to-r from-amber-700 to-amber-500 px-4 py-3 text-sm font-bold text-slate-950 shadow-lg shadow-amber-900/25 transition hover:brightness-110 active:scale-[0.99]";
 const btnGhost =
   "rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-xs font-semibold text-slate-200 transition hover:border-slate-500 hover:bg-slate-800";
-const btnDanger =
-  "rounded-xl border border-rose-900/50 bg-rose-950/30 px-3 py-2 text-xs font-semibold text-rose-300 transition hover:border-rose-700 hover:bg-rose-950/60";
 
 const chipCn =
   "rounded-full border border-slate-600 bg-slate-900 px-3 py-1.5 text-left text-xs font-semibold text-slate-100 transition hover:border-amber-500/40 hover:bg-slate-800 active:scale-[0.98]";
@@ -118,6 +116,17 @@ export function RoutineList({
   const [editName, setEditName] = useState("");
   const [editRows, setEditRows] = useState(defaultSetRows());
   const [editError, setEditError] = useState<string | null>(null);
+
+  const [expandedItemIds, setExpandedItemIds] = useState<Set<string>>(new Set());
+
+  function toggleExpand(id: string) {
+    setExpandedItemIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
 
   function beginEdit(item: WorkoutItem) {
     setEditingId(item.id);
@@ -590,34 +599,23 @@ export function RoutineList({
                   </div>
                 </form>
               ) : (
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
-                  <div className="shrink-0 sm:w-[120px]">
-                    <ExerciseVideoThumb
-                      exerciseName={item.name}
-                      className="aspect-[4/3] w-full max-w-[140px] sm:max-w-none"
-                    />
-                  </div>
-                  <div className="min-w-0 flex-1 space-y-3">
-                    <div className="flex flex-wrap items-start gap-3">
-                      <label className="mt-0.5 flex cursor-pointer items-start">
-                        <input
-                          type="checkbox"
-                          checked={item.completed}
-                          onChange={(e) =>
-                            onToggleComplete(item.id, e.target.checked)
-                          }
-                          className="mt-1 size-[1.15rem] shrink-0 cursor-pointer rounded-md border-slate-600 bg-slate-900 text-amber-500 accent-amber-500 focus:ring-2 focus:ring-amber-500/40"
-                          aria-label={`${item.name} 전체 완료`}
-                        />
-                      </label>
-                      <div className="min-w-0 flex-1 space-y-1">
-                        <div
-                          className={`flex flex-wrap items-center gap-2 ${
-                            item.completed ? "opacity-70" : ""
-                          }`}
-                        >
+                <div className="flex flex-col">
+                  {/* Collapsed Header */}
+                  <div
+                    className="flex cursor-pointer items-center justify-between gap-3"
+                    onClick={() => toggleExpand(item.id)}
+                  >
+                    <div className="flex flex-1 items-center gap-3 min-w-0">
+                      <div className="shrink-0">
+                         <ExerciseVideoThumb
+                           exerciseName={item.name}
+                           className="size-12 sm:size-14 rounded-full ring-2 ring-slate-800 shadow-lg shrink-0"
+                         />
+                      </div>
+                      <div className="flex flex-1 flex-col min-w-0">
+                        <div className="flex items-center gap-2">
                           <span
-                            className={`shrink-0 rounded-lg px-2.5 py-0.5 text-[11px] font-bold ${
+                            className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold ${
                               item.completed
                                 ? "bg-slate-800 text-slate-500 line-through"
                                 : "bg-slate-800 text-slate-300"
@@ -626,7 +624,7 @@ export function RoutineList({
                             {item.bodyPart}
                           </span>
                           <span
-                            className={`min-w-0 break-words text-base font-bold leading-snug ${
+                            className={`min-w-0 truncate text-base font-bold sm:text-lg ${
                               item.completed
                                 ? "text-slate-500 line-through"
                                 : "text-white"
@@ -635,32 +633,76 @@ export function RoutineList({
                             {item.name}
                           </span>
                         </div>
-                        <p className="text-[11px] text-slate-500">
-                          각 세트 옆 체크박스로 완료 · 세트 끝나면 휴식 타이머
+                        <p className="mt-1 text-xs font-medium text-slate-500">
+                           {item.setEntries.length}세트
                         </p>
-                        <SetRowsWithCheckboxes
-                          sets={item.setEntries}
-                          onToggleSet={(i) => onToggleSet(item.id, i)}
-                        />
-                      </div>
-                      <div className="flex shrink-0 gap-2">
-                        <button
-                          type="button"
-                          onClick={() => beginEdit(item)}
-                          className={`${btnGhost} min-w-[4.25rem]`}
-                        >
-                          수정
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteClick(item.id)}
-                          className={`${btnDanger} min-w-[4.25rem]`}
-                        >
-                          삭제
-                        </button>
                       </div>
                     </div>
+                    
+                    <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+                       <label className="mr-1 sm:mr-2 flex cursor-pointer items-center" onClick={(e) => e.stopPropagation()}>
+                         <input
+                           type="checkbox"
+                           checked={item.completed}
+                           onChange={(e) =>
+                             onToggleComplete(item.id, e.target.checked)
+                           }
+                           className="size-[1.2rem] shrink-0 cursor-pointer rounded-md border-slate-600 bg-slate-900 text-amber-500 accent-amber-500 focus:ring-2 focus:ring-amber-500/40"
+                           aria-label={`${item.name} 전체 완료`}
+                         />
+                       </label>
+                       
+                       <button
+                         type="button"
+                         onClick={(e) => { 
+                           e.stopPropagation(); 
+                           handleDeleteClick(item.id); 
+                         }}
+                         className="p-1.5 text-slate-400 hover:text-red-400 transition-colors focus:outline-none"
+                         aria-label="삭제"
+                       >
+                         <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                         </svg>
+                       </button>
+
+                       <span className="text-slate-600 text-xs ml-1 font-mono">
+                         {expandedItemIds.has(item.id) ? "▲" : "▼"}
+                       </span>
+                    </div>
                   </div>
+
+                  {/* Expanded Content */}
+                  {expandedItemIds.has(item.id) && (
+                    <div className="mt-4 animate-in fade-in slide-in-from-top-2 border-t border-slate-800/80 pt-4">
+                      <div className="mb-4">
+                        <ExerciseVideoThumb
+                          exerciseName={item.name}
+                          className="aspect-[16/9] w-full max-w-sm sm:max-w-md mx-auto shadow-xl ring-1 ring-white/5"
+                        />
+                      </div>
+                      
+                      <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                        <p className="text-[11px] text-slate-500 leading-snug">
+                          각 세트의 체크박스를 누르면 타이머가 돌아요 ⏱️
+                        </p>
+                        <div className="flex shrink-0 gap-2">
+                          <button
+                            type="button"
+                            onClick={() => beginEdit(item)}
+                            className={`${btnGhost} min-w-[3.5rem] px-2 py-1.5 text-[11px]`}
+                          >
+                            수정
+                          </button>
+                        </div>
+                      </div>
+
+                      <SetRowsWithCheckboxes
+                        sets={item.setEntries}
+                        onToggleSet={(i) => onToggleSet(item.id, i)}
+                      />
+                    </div>
+                  )}
                 </div>
               )}
             </li>

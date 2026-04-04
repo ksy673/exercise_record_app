@@ -4,33 +4,32 @@
  */
 import { ALL_SUGGESTED_EXERCISE_NAMES } from "./exerciseSuggestions";
 
-const Q = "auto=format&fit=crop&w=480&h=360&q=80";
 
 /** 바벨 벤치 / 가슴 프레스 계열 (푸시업 제외) */
-const BENCH = `https://images.unsplash.com/photo-1538805060514-97d01cc4922a?${Q}`;
+const BENCH = `/images/bench_press_anatomy_1775279390936.png`;
 /** 케이블 랫풀 / 풀다운 / 시티드 로우 등 */
-const LAT_PULL = `https://images.unsplash.com/photo-1540497077202-7c8a3999166f?${Q}`;
+const LAT_PULL = `/images/lat_pull_anatomy_1775279406604.png`;
 /** 맨몸 푸시업 */
-const PUSHUP = `https://images.unsplash.com/photo-1598971639058-fab3c3109a00?${Q}`;
+const PUSHUP = `/images/bench_press_anatomy_1775279390936.png`; // Reusing chest image
 /** 스쿼트 랙 */
-const SQUAT = `https://images.unsplash.com/photo-1517836357463-d25dfeac3438?${Q}`;
+const SQUAT = `/images/squat_anatomy_1775279420141.png`;
 /** 데드리프트 */
-const DEAD = `https://images.unsplash.com/photo-1517963879466-e1b54ebd0642?${Q}`;
+const DEAD = `/images/deadlift_anatomy_1775279456538.png`;
 /** 바벨 로우 */
-const ROW = `https://images.unsplash.com/photo-1605296867304-46d5465a13f1?${Q}`;
+const ROW = `/images/lat_pull_anatomy_1775279406604.png`; // Reusing back image
 /** 어깨 / 오버헤드 */
-const SHOULDER = `https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?${Q}`;
+const SHOULDER = `/images/shoulder_press_anatomy_1775279434450.png`;
 /** 레그 프레스 / 하체 머신 */
-const LEG = `https://images.unsplash.com/photo-1434608519344-49d77a82e877?${Q}`;
+const LEG = `/images/squat_anatomy_1775279420141.png`; // Reusing leg image
 /** 덤벨 컬 등 팔 */
-const ARM = `https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?${Q}`;
+const ARM = `/images/arms_curl_anatomy_1775279471360.png`;
 /** 플랭크 / 코어 */
-const CORE = `https://images.unsplash.com/photo-1518611012118-696072aa579a?${Q}`;
+const CORE = `/images/core_abs_anatomy_1775279491248.png`;
 /** 전신 / 케틀벨 */
-const FULL = `https://images.unsplash.com/photo-1517963879466-e1b54ebd0642?${Q}`;
+const FULL = `/images/full_body_1775279070656.png`;
 /** 유산소 */
-const CARDIO = `https://images.unsplash.com/photo-1576678927484-cc907957088c?${Q}`;
-const GYM = `https://images.unsplash.com/photo-1534438327276-14e3350c14ce?${Q}`;
+const CARDIO = `/images/cardio_run_1775279092572.png`;
+const GYM = `/images/gym_generic_1775279109770.png`;
 
 const FALLBACK = GYM;
 

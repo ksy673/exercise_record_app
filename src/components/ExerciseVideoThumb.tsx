@@ -33,7 +33,7 @@ export function ExerciseVideoThumb({ exerciseName, className = "" }: Props) {
         className="pointer-events-none absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-transparent"
         aria-hidden
       />
-      <p className="pointer-events-none absolute bottom-1.5 left-2 right-2 truncate text-[10px] font-semibold text-white/90 drop-shadow">
+      <p className="pointer-events-none absolute bottom-1.5 left-2 right-2 truncate text-[10px] sm:text-xs font-semibold text-white/90 drop-shadow">
         {exerciseName}
       </p>
     </div>
