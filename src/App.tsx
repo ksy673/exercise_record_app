@@ -3,7 +3,7 @@ import { BottomNav } from "./components/BottomNav";
 import { DayTabs } from "./components/DayTabs";
 import { HistoryCalendar } from "./components/HistoryCalendar";
 import type { CalendarMonth } from "./components/HistoryCalendar";
-import { RestSettingsPanel } from "./components/RestSettingsPanel";
+import { SettingsPanel } from "./components/SettingsPanel";
 import { RestTimerBar } from "./components/RestTimerBar";
 import { RoutineList } from "./components/RoutineList";
 import { WorkoutSummaryPanel } from "./components/WorkoutSummaryPanel";
@@ -89,6 +89,7 @@ export default function App() {
 
   useEffect(() => {
     saveAppSettings(settings);
+    document.documentElement.setAttribute('data-theme', settings.themeColor);
   }, [settings]);
 
   useEffect(() => {
@@ -339,7 +340,7 @@ export default function App() {
         <div className="relative flex w-full flex-col items-center">
           <header className="relative w-full border-b border-slate-800/90 bg-slate-950/70 backdrop-blur-xl">
             <div className={`relative py-5 ${columnClass} mx-auto`}>
-              <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-amber-400/90">
+              <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-primary-400/90">
                 로컬 운동 일지
               </p>
               <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-white sm:text-3xl">
@@ -350,10 +351,10 @@ export default function App() {
                 돌아갑니다. 아래에서 시간과 알림음을 바꿀 수 있어요.
               </p>
               <details className="mt-4 group">
-                <summary className="cursor-pointer list-none rounded-xl border border-slate-700/80 bg-slate-900/40 px-4 py-3 text-sm font-semibold text-amber-200/90 transition hover:bg-slate-900/70 [&::-webkit-details-marker]:hidden">
+                <summary className="cursor-pointer list-none rounded-xl border border-slate-700/80 bg-slate-900/40 px-4 py-3 text-sm font-semibold text-primary-200/90 transition hover:bg-slate-900/70 [&::-webkit-details-marker]:hidden">
                   <span className="inline-flex items-center gap-2">
                     <span aria-hidden>⚙</span>
-                    휴식 시간·알림음 설정
+                    UI 및 휴식 타이머 설정
                     <span className="text-xs font-normal text-slate-500 group-open:hidden">
                       (열기)
                     </span>
@@ -363,7 +364,7 @@ export default function App() {
                   </span>
                 </summary>
                 <div className="mt-3">
-                  <RestSettingsPanel settings={settings} onChange={setSettings} />
+                  <SettingsPanel settings={settings} onChange={setSettings} />
                 </div>
               </details>
             </div>
@@ -377,7 +378,7 @@ export default function App() {
                     <p className="text-sm font-semibold text-slate-300">{weekLabel}</p>
                     <p className="mt-0.5 text-xs text-slate-500">
                       이번 주 항목{" "}
-                      <span className="font-bold tabular-nums text-amber-400">
+                      <span className="font-bold tabular-nums text-primary-400">
                         {weekExerciseCount}
                       </span>
                       개
@@ -395,7 +396,7 @@ export default function App() {
                       <button
                         type="button"
                         onClick={() => setWeekOffset(0)}
-                        className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs font-bold text-amber-200 transition hover:bg-amber-500/20"
+                        className="rounded-xl border border-primary-500/40 bg-primary-500/10 px-3 py-2 text-xs font-bold text-primary-200 transition hover:bg-primary-500/20"
                       >
                         이번 주로
                       </button>
@@ -419,6 +420,8 @@ export default function App() {
                   key={dateKey}
                   date={selectedDate}
                   items={items}
+                  workoutsByDate={workoutsByDate}
+                  viewMode={settings.viewMode}
                   sessionStartLabel={sessionStartLabel}
                   savedRoutines={savedRoutines}
                   onSaveRoutine={handleSaveRoutine}

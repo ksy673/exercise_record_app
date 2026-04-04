@@ -10,13 +10,18 @@ import {
 import { parsePastedWorkoutText } from "../utils/quickParse";
 import { formatShortDate } from "../utils/week";
 import type { SavedRoutine } from "../utils/savedRoutinesStorage";
+import type { ViewMode } from "../utils/appSettings";
 import { ExerciseVideoThumb } from "./ExerciseVideoThumb";
 import { RoutineLibrary } from "./RoutineLibrary";
 import { SetRowsWithCheckboxes } from "./SetRowsWithCheckboxes";
+import { ProgressChartModal } from "./ProgressChartModal";
+import { getLastWorkoutSets, getChartDataForExercise } from "../utils/workoutAnalytics";
 
 type Props = {
   date: Date;
   items: WorkoutItem[];
+  workoutsByDate: Record<string, WorkoutItem[]>;
+  viewMode: ViewMode;
   sessionStartLabel: string | null;
   savedRoutines: SavedRoutine[];
   onSaveRoutine: (name: string) => void;
@@ -33,15 +38,15 @@ type Props = {
 const labelCn =
   "block text-[11px] font-bold uppercase tracking-wider text-slate-500";
 const inputCn =
-  "mt-1.5 w-full rounded-xl border-0 bg-slate-900 px-3.5 py-2.5 text-sm text-slate-100 shadow-inner ring-1 ring-slate-700 transition placeholder:text-slate-500 focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/40";
+  "mt-1.5 w-full rounded-xl border-0 bg-slate-900 px-3.5 py-2.5 text-sm text-slate-100 shadow-inner ring-1 ring-slate-700 transition placeholder:text-slate-500 focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-primary-500/40";
 
 const btnPrimary =
-  "rounded-xl bg-gradient-to-r from-amber-700 to-amber-500 px-4 py-3 text-sm font-bold text-slate-950 shadow-lg shadow-amber-900/25 transition hover:brightness-110 active:scale-[0.99]";
+  "rounded-xl bg-gradient-to-r from-primary-700 to-primary-500 px-4 py-3 text-sm font-bold text-slate-950 shadow-lg shadow-primary-900/25 transition hover:brightness-110 active:scale-[0.99]";
 const btnGhost =
   "rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-xs font-semibold text-slate-200 transition hover:border-slate-500 hover:bg-slate-800";
 
 const chipCn =
-  "rounded-full border border-slate-600 bg-slate-900 px-3 py-1.5 text-left text-xs font-semibold text-slate-100 transition hover:border-amber-500/40 hover:bg-slate-800 active:scale-[0.98]";
+  "rounded-full border border-slate-600 bg-slate-900 px-3 py-1.5 text-left text-xs font-semibold text-slate-100 transition hover:border-primary-500/40 hover:bg-slate-800 active:scale-[0.98]";
 
 function defaultSetRows(): { weightKg: string; reps: string }[] {
   return [
@@ -91,6 +96,8 @@ type AddMode = "detail" | "quick";
 export function RoutineList({
   date,
   items,
+  workoutsByDate,
+  viewMode,
   sessionStartLabel,
   savedRoutines,
   onSaveRoutine,
@@ -118,6 +125,7 @@ export function RoutineList({
   const [editError, setEditError] = useState<string | null>(null);
 
   const [expandedItemIds, setExpandedItemIds] = useState<Set<string>>(new Set());
+  const [chartExercise, setChartExercise] = useState<string | null>(null);
 
   function toggleExpand(id: string) {
     setExpandedItemIds((prev) => {
@@ -154,6 +162,14 @@ export function RoutineList({
       return;
     }
     setAddError(null);
+
+    const nameTrimmed = result.value.name;
+    const sameSets = result.value.setEntries.length === 3 && result.value.setEntries.every((s) => s.weightKg === 60 && s.reps === 10);
+    const lastSets = getLastWorkoutSets(nameTrimmed, workoutsByDate);
+    if (sameSets && lastSets) {
+      result.value.setEntries = lastSets;
+    }
+
     onAdd(result.value);
     setName("");
     setSetRows(defaultSetRows());
@@ -201,7 +217,7 @@ export function RoutineList({
       }}
       className={`flex-1 rounded-lg px-3 py-2 text-xs font-bold transition sm:text-sm ${
         addMode === mode
-          ? "bg-slate-800 text-white shadow-sm ring-1 ring-amber-500/40"
+          ? "bg-slate-800 text-white shadow-sm ring-1 ring-primary-500/40"
           : "text-slate-500 hover:text-slate-200"
       }`}
     >
@@ -213,7 +229,7 @@ export function RoutineList({
     <section className="mt-7">
       <div className="flex items-center gap-3">
         <span
-          className="h-9 w-1 shrink-0 rounded-full bg-gradient-to-b from-amber-500 to-cyan-600 shadow-sm shadow-amber-900/30"
+          className="h-9 w-1 shrink-0 rounded-full bg-gradient-to-b from-primary-500 to-cyan-600 shadow-sm shadow-primary-900/30"
           aria-hidden
         />
         <div className="min-w-0">
@@ -222,7 +238,7 @@ export function RoutineList({
           </h2>
           <p className="text-xs font-semibold text-slate-500">운동 일지</p>
           {sessionStartLabel ? (
-            <p className="mt-1 text-[11px] font-medium text-amber-200/90">
+            <p className="mt-1 text-[11px] font-medium text-primary-200/90">
               이 날 운동 시작: {sessionStartLabel}
             </p>
           ) : (
@@ -246,7 +262,7 @@ export function RoutineList({
       <div className="mt-5 rounded-2xl border border-slate-800 bg-slate-900/50 p-5 sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3">
           <div>
-            <p className="text-xs font-bold uppercase tracking-wider text-amber-400/90">
+            <p className="text-xs font-bold uppercase tracking-wider text-primary-400/90">
               새 기록
             </p>
             <p className="text-sm font-semibold text-slate-200">루틴 추가</p>
@@ -259,7 +275,7 @@ export function RoutineList({
 
         {addError ? (
           <p
-            className="mt-3 rounded-xl border border-amber-900/60 bg-amber-950/40 px-3 py-2.5 text-sm font-medium text-amber-200"
+            className="mt-3 rounded-xl border border-primary-900/60 bg-primary-950/40 px-3 py-2.5 text-sm font-medium text-primary-200"
             role="alert"
           >
             {addError}
@@ -282,7 +298,7 @@ export function RoutineList({
                 setAddError(null);
               }}
               rows={8}
-              className="w-full resize-y rounded-xl border border-slate-700 bg-slate-950 px-3 py-3 font-mono text-[13px] leading-relaxed text-slate-100 shadow-inner placeholder:text-slate-600 focus:border-amber-500/50 focus:outline-none focus:ring-2 focus:ring-amber-500/25"
+              className="w-full resize-y rounded-xl border border-slate-700 bg-slate-950 px-3 py-3 font-mono text-[13px] leading-relaxed text-slate-100 shadow-inner placeholder:text-slate-600 focus:border-primary-500/50 focus:outline-none focus:ring-2 focus:ring-primary-500/25"
               placeholder={"벤치프레스 3 60\n랫풀다운 3 40\n스쿼트 5 100 8"}
               spellCheck={false}
             />
@@ -448,18 +464,18 @@ export function RoutineList({
               key={item.id}
               className={`rounded-2xl border bg-slate-900/40 p-4 shadow-lg transition duration-200 sm:p-5 ${
                 item.completed
-                  ? "border-amber-500/35 ring-1 ring-amber-500/15"
+                  ? "border-primary-500/35 ring-1 ring-primary-500/15"
                   : "border-slate-800 hover:border-slate-600"
               }`}
             >
               {editingId === item.id ? (
                 <form onSubmit={(e) => handleSaveEdit(e, item.id)} className="space-y-4">
-                  <p className="text-xs font-bold uppercase tracking-wider text-amber-400/90">
+                  <p className="text-xs font-bold uppercase tracking-wider text-primary-400/90">
                     수정 중
                   </p>
                   {editError ? (
                     <p
-                      className="rounded-xl border border-amber-900/60 bg-amber-950/40 px-3 py-2.5 text-sm font-medium text-amber-200"
+                      className="rounded-xl border border-primary-900/60 bg-primary-950/40 px-3 py-2.5 text-sm font-medium text-primary-200"
                       role="alert"
                     >
                       {editError}
@@ -598,6 +614,24 @@ export function RoutineList({
                     </button>
                   </div>
                 </form>
+              ) : viewMode === "classic" ? (
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-bold uppercase text-slate-500 bg-slate-800 px-1.5 py-0.5 rounded">{item.bodyPart}</span>
+                      <span className={`text-base font-bold ${item.completed ? "text-slate-500 line-through" : "text-slate-200"}`}>{item.name}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button type="button" onClick={() => setChartExercise(item.name)} className="text-[11px] text-primary-500 hover:text-primary-400">📈 통계</button>
+                      <button type="button" onClick={() => beginEdit(item)} className="text-[11px] text-slate-400 hover:text-slate-200">수정</button>
+                      <button type="button" onClick={() => onToggleComplete(item.id, !item.completed)} className="text-[11px] text-slate-400 hover:text-slate-200">{item.completed ? '취소' : '완료'}</button>
+                      <button type="button" onClick={() => onDelete(item.id)} className="text-[11px] text-red-500/70 hover:text-red-400">삭제</button>
+                    </div>
+                  </div>
+                  <div className="border-t border-slate-800/80 pt-2 mt-1">
+                    <SetRowsWithCheckboxes sets={item.setEntries} onToggleSet={(i) => onToggleSet(item.id, i)} />
+                  </div>
+                </div>
               ) : (
                 <div className="flex flex-col">
                   {/* Collapsed Header */}
@@ -647,7 +681,7 @@ export function RoutineList({
                            onChange={(e) =>
                              onToggleComplete(item.id, e.target.checked)
                            }
-                           className="size-[1.2rem] shrink-0 cursor-pointer rounded-md border-slate-600 bg-slate-900 text-amber-500 accent-amber-500 focus:ring-2 focus:ring-amber-500/40"
+                           className="size-[1.2rem] shrink-0 cursor-pointer rounded-md border-slate-600 bg-slate-900 text-primary-500 accent-primary-500 focus:ring-2 focus:ring-primary-500/40"
                            aria-label={`${item.name} 전체 완료`}
                          />
                        </label>
@@ -689,6 +723,13 @@ export function RoutineList({
                         <div className="flex shrink-0 gap-2">
                           <button
                             type="button"
+                            onClick={() => setChartExercise(item.name)}
+                            className={`${btnGhost} bg-primary-950/20 text-primary-500 hover:border-primary-500/50 hover:bg-primary-950/40 border-primary-900/30 px-2 py-1.5 min-w-[3.5rem] text-[11px]`}
+                          >
+                            📈 통계
+                          </button>
+                          <button
+                            type="button"
                             onClick={() => beginEdit(item)}
                             className={`${btnGhost} min-w-[3.5rem] px-2 py-1.5 text-[11px]`}
                           >
@@ -708,6 +749,14 @@ export function RoutineList({
             </li>
           ))}
         </ul>
+      )}
+
+      {chartExercise && (
+        <ProgressChartModal
+          exerciseName={chartExercise}
+          data={getChartDataForExercise(chartExercise, workoutsByDate)}
+          onClose={() => setChartExercise(null)}
+        />
       )}
     </section>
   );

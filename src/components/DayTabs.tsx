@@ -24,13 +24,13 @@ export function DayTabs({ weekDates, selected, onSelect }: Props) {
               onClick={() => onSelect(day)}
               className={`flex min-w-0 flex-col items-center justify-center rounded-xl px-0.5 py-2.5 text-center transition-all duration-200 sm:py-3 ${
                 isActive
-                  ? "bg-gradient-to-br from-amber-600 to-amber-500 text-slate-950 shadow-lg shadow-amber-900/30 ring-1 ring-white/10"
+                  ? "bg-gradient-to-br from-primary-600 to-primary-500 text-slate-950 shadow-lg shadow-primary-900/30 ring-1 ring-white/10"
                   : "text-slate-400 hover:bg-slate-800 hover:text-slate-100"
               }`}
             >
               <span
                 className={`text-[11px] font-bold leading-none sm:text-xs ${
-                  isActive ? "text-amber-950/80" : "text-slate-500"
+                  isActive ? "text-primary-950/80" : "text-slate-500"
                 }`}
               >
                 {label}

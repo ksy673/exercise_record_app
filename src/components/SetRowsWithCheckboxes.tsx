@@ -17,7 +17,7 @@ export function SetRowsWithCheckboxes({ sets, onToggleSet, readOnly }: Props) {
             key={i}
             className={`flex items-center gap-3 rounded-xl border px-2 py-2 sm:px-3 ${
               done
-                ? "border-amber-500/35 bg-amber-950/25"
+                ? "border-primary-500/35 bg-primary-950/25"
                 : "border-slate-700/80 bg-slate-900/50"
             }`}
           >
@@ -27,7 +27,7 @@ export function SetRowsWithCheckboxes({ sets, onToggleSet, readOnly }: Props) {
                 checked={done}
                 disabled={readOnly || !onToggleSet}
                 onChange={() => onToggleSet?.(i)}
-                className="size-5 rounded border-slate-500 bg-slate-900 text-amber-500 accent-amber-500 focus:ring-2 focus:ring-amber-500/40 disabled:cursor-default disabled:opacity-60"
+                className="size-5 rounded border-slate-500 bg-slate-900 text-primary-500 accent-primary-500 focus:ring-2 focus:ring-primary-500/40 disabled:cursor-default disabled:opacity-60"
                 aria-label={`${i + 1}세트 완료`}
               />
               <span className="w-9 text-[11px] font-bold tabular-nums text-slate-500">
@@ -37,7 +37,7 @@ export function SetRowsWithCheckboxes({ sets, onToggleSet, readOnly }: Props) {
             <div className="flex min-w-0 flex-1 items-center justify-end gap-2 text-sm sm:justify-start">
               <span
                 className={`tabular-nums font-bold ${
-                  done ? "text-amber-200/90 line-through decoration-slate-500" : "text-slate-100"
+                  done ? "text-primary-200/90 line-through decoration-slate-500" : "text-slate-100"
                 }`}
               >
                 {s.weightKg % 1 === 0 ? String(s.weightKg) : s.weightKg.toFixed(1)}kg

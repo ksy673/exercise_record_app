@@ -51,7 +51,7 @@ export function RoutineLibrary({
         onClick={() => setOpen((o) => !o)}
         className="flex w-full items-center justify-between text-left"
       >
-        <span className="text-sm font-bold text-amber-200/95">내 루틴 저장 · 불러오기</span>
+        <span className="text-sm font-bold text-primary-200/95">내 루틴 저장 · 불러오기</span>
         <span className="text-xs text-slate-500">{open ? "접기" : "펼치기"}</span>
       </button>
       {open ? (
@@ -68,13 +68,13 @@ export function RoutineLibrary({
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="예: 가슴·등 A 루틴"
-                className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-amber-500/35"
+                className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-primary-500/35"
               />
             </label>
             <button
               type="button"
               onClick={handleSave}
-              className="shrink-0 rounded-xl bg-gradient-to-r from-amber-700 to-amber-500 px-4 py-2.5 text-sm font-bold text-slate-950"
+              className="shrink-0 rounded-xl bg-gradient-to-r from-primary-700 to-primary-500 px-4 py-2.5 text-sm font-bold text-slate-950"
             >
               현재 목록 저장
             </button>
@@ -93,7 +93,7 @@ export function RoutineLibrary({
                   <button
                     type="button"
                     onClick={() => handleLoad(r)}
-                    className="rounded-lg border border-amber-600/50 bg-amber-500/10 px-2.5 py-1.5 text-xs font-bold text-amber-200"
+                    className="rounded-lg border border-primary-600/50 bg-primary-500/10 px-2.5 py-1.5 text-xs font-bold text-primary-200"
                   >
                     불러오기
                   </button>

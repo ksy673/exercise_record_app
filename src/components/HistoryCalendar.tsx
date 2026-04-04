@@ -106,7 +106,7 @@ export function HistoryCalendar({
                   onClick={() => onPickDate(cell)}
                   className={`flex min-h-[44px] flex-col items-center justify-center rounded-xl text-xs font-bold transition ${
                     isSel
-                      ? "bg-gradient-to-br from-amber-500 to-amber-600 text-slate-950 shadow-lg shadow-amber-900/40"
+                      ? "bg-gradient-to-br from-primary-500 to-primary-600 text-slate-950 shadow-lg shadow-primary-900/40"
                       : "text-slate-200 hover:bg-slate-800"
                   }`}
                 >
@@ -114,7 +114,7 @@ export function HistoryCalendar({
                   {has ? (
                     <span
                       className={`mt-0.5 h-1.5 w-1.5 rounded-full ${
-                        isSel ? "bg-slate-950" : "bg-amber-500"
+                        isSel ? "bg-slate-950" : "bg-primary-500"
                       }`}
                       aria-hidden
                     />

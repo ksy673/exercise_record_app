@@ -2,14 +2,21 @@ import type { RestSoundId } from "../types";
 
 const STORAGE_KEY = "workout-app-settings-v1";
 
+export type ViewMode = "pro" | "classic";
+export type ThemeColor = "amber" | "indigo" | "rose" | "emerald";
+
 export type AppSettings = {
   restDurationSec: number;
   restSoundId: RestSoundId;
+  viewMode: ViewMode;
+  themeColor: ThemeColor;
 };
 
 export const DEFAULT_SETTINGS: AppSettings = {
   restDurationSec: 90,
   restSoundId: "beep",
+  viewMode: "pro",
+  themeColor: "amber",
 };
 
 export const REST_SOUND_OPTIONS: { id: RestSoundId; label: string }[] = [
@@ -28,6 +35,14 @@ function isRestSoundId(v: unknown): v is RestSoundId {
   return v === "beep" || v === "chime" || v === "bell" || v === "digital";
 }
 
+function isViewMode(v: unknown): v is ViewMode {
+  return v === "pro" || v === "classic";
+}
+
+function isThemeColor(v: unknown): v is ThemeColor {
+  return v === "amber" || v === "indigo" || v === "rose" || v === "emerald";
+}
+
 export function loadAppSettings(): AppSettings {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -41,7 +56,11 @@ export function loadAppSettings(): AppSettings {
     const restSoundId = isRestSoundId(rec.restSoundId)
       ? rec.restSoundId
       : DEFAULT_SETTINGS.restSoundId;
-    return { restDurationSec, restSoundId };
+      
+    const viewMode = isViewMode(rec.viewMode) ? rec.viewMode : DEFAULT_SETTINGS.viewMode;
+    const themeColor = isThemeColor(rec.themeColor) ? rec.themeColor : DEFAULT_SETTINGS.themeColor;
+      
+    return { restDurationSec, restSoundId, viewMode, themeColor };
   } catch {
     return { ...DEFAULT_SETTINGS };
   }
@@ -54,6 +73,8 @@ export function saveAppSettings(s: AppSettings): void {
       JSON.stringify({
         restDurationSec: clampDuration(s.restDurationSec),
         restSoundId: s.restSoundId,
+        viewMode: s.viewMode,
+        themeColor: s.themeColor,
       }),
     );
   } catch {
