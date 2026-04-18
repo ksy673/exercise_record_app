@@ -24,9 +24,9 @@ type Props = {
   viewMode: ViewMode;
   sessionStartLabel: string | null;
   savedRoutines: SavedRoutine[];
-  onSaveRoutine: (name: string) => void;
   onLoadRoutine: (routine: SavedRoutine, mode: "append" | "replace") => void;
   onDeleteRoutine: (id: string) => void;
+  onCreateCustomRoutine: (name: string, items: WorkoutFields[]) => void;
   onAdd: (item: WorkoutFields) => void;
   onAddBatch: (items: WorkoutFields[]) => void;
   onUpdate: (id: string, item: WorkoutFields) => void;
@@ -100,9 +100,9 @@ export function RoutineList({
   viewMode,
   sessionStartLabel,
   savedRoutines,
-  onSaveRoutine,
   onLoadRoutine,
   onDeleteRoutine,
+  onCreateCustomRoutine,
   onAdd,
   onAddBatch,
   onUpdate,
@@ -253,9 +253,9 @@ export function RoutineList({
         <RoutineLibrary
           routines={savedRoutines}
           currentCount={items.length}
-          onSave={onSaveRoutine}
           onLoad={onLoadRoutine}
           onDelete={onDeleteRoutine}
+          onCreateCustomRoutine={onCreateCustomRoutine}
         />
       </div>
 

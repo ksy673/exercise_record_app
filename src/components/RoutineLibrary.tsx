@@ -1,37 +1,25 @@
 import { useState } from "react";
 import type { SavedRoutine } from "../utils/savedRoutinesStorage";
+import { RoutineBuilderModal } from "./RoutineBuilderModal";
+import type { WorkoutFields } from "../types";
 
 type Props = {
   routines: SavedRoutine[];
   currentCount: number;
-  onSave: (name: string) => void;
   onLoad: (routine: SavedRoutine, mode: "append" | "replace") => void;
   onDelete: (id: string) => void;
+  onCreateCustomRoutine: (name: string, items: WorkoutFields[]) => void;
 };
 
 export function RoutineLibrary({
   routines,
   currentCount,
-  onSave,
   onLoad,
   onDelete,
+  onCreateCustomRoutine,
 }: Props) {
-  const [name, setName] = useState("");
   const [open, setOpen] = useState(false);
-
-  function handleSave() {
-    const t = name.trim();
-    if (!t) {
-      window.alert("루틴 이름을 입력해 주세요.");
-      return;
-    }
-    if (currentCount === 0) {
-      window.alert("저장할 운동이 없어요. 먼저 오늘 일지에 운동을 추가해 주세요.");
-      return;
-    }
-    onSave(t);
-    setName("");
-  }
+  const [builderOpen, setBuilderOpen] = useState(false);
 
   function handleLoad(r: SavedRoutine) {
     if (currentCount > 0) {
@@ -60,23 +48,13 @@ export function RoutineLibrary({
             현재 날짜에 적힌 운동 목록을 이름 붙여 저장해 두었다가, 다른 날에 한 번에
             불러올 수 있어요.
           </p>
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
-            <label className="min-w-0 flex-1">
-              <span className="text-[11px] font-bold text-slate-500">새 루틴 이름</span>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="예: 가슴·등 A 루틴"
-                className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-primary-500/35"
-              />
-            </label>
+          <div className="mb-4 text-left">
             <button
-              type="button"
-              onClick={handleSave}
-              className="shrink-0 rounded-xl bg-gradient-to-r from-primary-700 to-primary-500 px-4 py-2.5 text-sm font-bold text-slate-950"
-            >
-              현재 목록 저장
+               type="button"
+               onClick={() => setBuilderOpen(true)}
+               className="w-full sm:w-auto rounded-xl border border-primary-500/50 bg-primary-900/30 px-4 py-2.5 text-sm font-bold text-primary-300 transition hover:bg-primary-900/50"
+             >
+               ➕ 새 커스텀 루틴 만들기
             </button>
           </div>
           {routines.length === 0 ? (
@@ -114,6 +92,15 @@ export function RoutineLibrary({
           )}
         </div>
       ) : null}
+      {builderOpen && (
+        <RoutineBuilderModal
+          onClose={() => setBuilderOpen(false)}
+          onSave={(newName, items) => {
+            onCreateCustomRoutine(newName, items);
+            setBuilderOpen(false);
+          }}
+        />
+      )}
     </div>
   );
 }

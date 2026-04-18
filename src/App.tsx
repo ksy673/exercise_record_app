@@ -165,13 +165,6 @@ export default function App() {
     return iso ? formatSessionStartLabel(iso) : null;
   }, [sessionStarts, dateKey]);
 
-  function workoutToFields(w: WorkoutItem): WorkoutFields {
-    return {
-      bodyPart: w.bodyPart,
-      name: w.name,
-      setEntries: w.setEntries.map((s) => ({ weightKg: s.weightKg, reps: s.reps })),
-    };
-  }
 
   function startRestTimer() {
     const sec = settings.restDurationSec;
@@ -284,11 +277,7 @@ export default function App() {
     }));
   }
 
-  function handleSaveRoutine(name: string) {
-    const key = dateKeyRef.current;
-    const list = workoutsByDate[key] ?? [];
-    if (list.length === 0) return;
-    const items = list.map(workoutToFields);
+  function handleCreateCustomRoutine(name: string, items: WorkoutFields[]) {
     const r = createRoutine(name, items);
     setSavedRoutines((prev) => [...prev, r]);
   }
@@ -424,9 +413,9 @@ export default function App() {
                   viewMode={settings.viewMode}
                   sessionStartLabel={sessionStartLabel}
                   savedRoutines={savedRoutines}
-                  onSaveRoutine={handleSaveRoutine}
                   onLoadRoutine={handleLoadRoutine}
                   onDeleteRoutine={handleDeleteRoutine}
+                  onCreateCustomRoutine={handleCreateCustomRoutine}
                   onAdd={handleAdd}
                   onAddBatch={handleAddBatch}
                   onUpdate={handleUpdate}
